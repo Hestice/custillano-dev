@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
   Command,
@@ -21,89 +22,47 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { siteConfig } from "@/config/site";
+import type { IconKey } from "@/config/site";
 
-const capabilityTracks = [
-  {
-    title: "Systems UX",
-    description:
-      "Journeys, narratives, and flows for thoughtful 2D experiences that still feel alive.",
-    icon: Layers,
-  },
-  {
-    title: "Product OS",
-    description:
-      "Design ops, design tokens, and component governance powered by high-signal config.",
-    icon: Command,
-  },
-  {
-    title: "Creative Tech",
-    description:
-      "WebGL experiments, Scroll-triggered narratives, and motion that stays performant.",
-    icon: Sparkles,
-  },
-];
-
-const modePreviews = [
-  {
-    label: "CLI Mode",
-    title: "Type-first portfolio",
-    description:
-      "A shadcn-powered terminal for fast navigation, intended for recruiters who want signal fast.",
-    href: "/terminal",
-    icon: Terminal,
-  },
-  {
-    label: "Immersive Mode",
-    title: "Three.js playground",
-    description:
-      "A gamified trail with spatial UI, interactive prototypes, and shader toys.",
-    href: "/experience",
-    icon: Joystick,
-  },
-];
-
-const labNotes = [
-  {
-    title: "Dynamic theming engine",
-    copy: "Configurable palettes sync across motion, typography, and even HDRI choices so each mode still feels cohesive.",
-  },
-  {
-    title: "Email bridge",
-    copy: "Shared composer component routes messages to the right inbox while keeping the experience inline.",
-  },
-  {
-    title: "Mode-aware telemetry",
-    copy: "Simple analytics hooks record which experience resonates to help prioritize future drops.",
-  },
-];
-
-const contactReasons = [
-  "Product design collaborations",
-  "Creative technology consulting",
-  "Speaking or workshop invites",
-];
+const iconMap: Record<IconKey, LucideIcon> = {
+  layers: Layers,
+  command: Command,
+  sparkles: Sparkles,
+  terminal: Terminal,
+  joystick: Joystick,
+};
 
 export const metadata: Metadata = {
-  title: "custillano.dev — Product, Systems, Experiments",
-  description:
-    "A config-driven playground featuring CLI, web, and immersive modes. This is the editorial web surface.",
+  title: `${siteConfig.info.siteName} — Product, Systems, Experiments`,
+  description: `${siteConfig.info.description} This is the editorial web surface.`,
 };
 
 export default function WebModeLanding() {
+  const { hero, capabilities, modes, labNotes, contact, info, projects } =
+    siteConfig;
+
   return (
     <div className="bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-16 px-6 py-16 md:py-20 lg:px-8">
-        <Hero />
-        <Capabilities />
-        <Modes />
-        <Lab />
-        <Contact />
+        <Hero hero={hero} focusAreas={info.focusAreas} />
+        <Capabilities capabilities={capabilities} />
+        <Projects projects={projects} />
+        <Modes modes={modes} />
+        <Lab notes={labNotes} />
+        <Contact contact={contact} />
       </div>
     </div>
   );
 }
 
-function Hero() {
+function Hero({
+  hero,
+  focusAreas,
+}: {
+  hero: typeof siteConfig.hero;
+  focusAreas: typeof siteConfig.info.focusAreas;
+}) {
   return (
     <section className="border-border/60 relative overflow-hidden rounded-3xl border bg-gradient-to-br from-background via-background to-muted/60 p-10 shadow-[0_20px_120px_-50px_rgba(0,0,0,0.8)]">
       <div className="flex flex-col gap-6">
@@ -111,29 +70,27 @@ function Hero() {
           variant="secondary"
           className="w-fit bg-secondary/60 text-xs tracking-wide uppercase"
         >
-          Mode · Web
+          {hero.modeLabel}
         </Badge>
         <div className="space-y-6">
           <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">
-            Product Design · Creative Tech · Spatial UX
+            {focusAreas.join(" · ")}
           </p>
           <h1 className="text-balance text-4xl font-semibold leading-snug text-foreground sm:text-5xl">
-            Designing adaptive experiences with a single source of truth.
+            {hero.headline}
           </h1>
           <p className="text-lg text-muted-foreground sm:text-xl">
-            Pick your interface—CLI, web, or immersive. Each is powered by one
-            configuration file and the same design primitives, so you see the
-            craft, not chaos.
+            {hero.copy}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button asChild size="lg">
-            <Link href="#contact">
-              Collaborate <ArrowRight className="ml-2 size-4" />
+            <Link href={hero.primaryCta.href}>
+              {hero.primaryCta.label} <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
-            <Link href="#modes">Preview modes</Link>
+            <Link href={hero.secondaryCta.href}>{hero.secondaryCta.label}</Link>
           </Button>
         </div>
       </div>
@@ -141,11 +98,15 @@ function Hero() {
   );
 }
 
-function Capabilities() {
+function Capabilities({
+  capabilities,
+}: {
+  capabilities: typeof siteConfig.capabilities;
+}) {
   return (
     <section className="grid gap-6 lg:grid-cols-3" aria-label="Capabilities">
-      {capabilityTracks.map((track) => {
-        const Icon = track.icon;
+      {capabilities.map((track) => {
+        const Icon = iconMap[track.icon];
         return (
           <Card key={track.title} className="h-full border-border">
             <CardHeader>
@@ -164,7 +125,48 @@ function Capabilities() {
   );
 }
 
-function Modes() {
+function Projects({ projects }: { projects: typeof siteConfig.projects }) {
+  return (
+    <section className="space-y-6">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-2xl font-semibold">Selected projects</h2>
+        <p className="text-muted-foreground">
+          A glimpse at previous collaborations and experiments.
+        </p>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {projects.map((project) => (
+          <Card key={project.name} className="h-full border-border">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-xl">{project.name}</CardTitle>
+              <CardDescription>{project.role}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-foreground">{project.summary}</p>
+              <div className="flex flex-wrap gap-2">
+                {project.stack.map((tech) => (
+                  <Badge key={tech} variant="outline">
+                    {tech}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="ghost" className="px-0" asChild>
+                <Link href={project.link}>
+                  View case study
+                  <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Modes({ modes }: { modes: typeof siteConfig.modes }) {
   return (
     <section id="modes" className="space-y-6">
       <div className="flex flex-col gap-3">
@@ -175,8 +177,8 @@ function Modes() {
         </p>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
-        {modePreviews.map((mode) => {
-          const Icon = mode.icon;
+        {modes.map((mode) => {
+          const Icon = iconMap[mode.icon];
           return (
             <Card
               key={mode.label}
@@ -208,7 +210,7 @@ function Modes() {
   );
 }
 
-function Lab() {
+function Lab({ notes }: { notes: typeof siteConfig.labNotes }) {
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-3">
@@ -218,7 +220,7 @@ function Lab() {
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        {labNotes.map((note) => (
+        {notes.map((note) => (
           <div
             key={note.title}
             className="rounded-2xl border border-dashed border-border/70 p-6"
@@ -234,7 +236,7 @@ function Lab() {
   );
 }
 
-function Contact() {
+function Contact({ contact }: { contact: typeof siteConfig.contact }) {
   return (
     <section
       id="contact"
@@ -243,13 +245,10 @@ function Contact() {
       <div className="space-y-6">
         <div className="space-y-3">
           <Badge variant="secondary" className="w-fit uppercase tracking-wide">
-            Open for collaborations
+            {contact.badge}
           </Badge>
-          <h2 className="text-3xl font-semibold">Tell me about your brief</h2>
-          <p className="text-muted-foreground">
-            The shared email composer will eventually live here. For now, drop a
-            note with your focus and ideal mode.
-          </p>
+          <h2 className="text-3xl font-semibold">{contact.title}</h2>
+          <p className="text-muted-foreground">{contact.description}</p>
         </div>
         <Card className="border-border">
           <CardHeader>
@@ -276,7 +275,7 @@ function Contact() {
           What to reach out for
         </p>
         <ul className="space-y-4 text-sm text-foreground">
-          {contactReasons.map((reason) => (
+          {contact.reasons.map((reason) => (
             <li key={reason} className="flex items-start gap-3">
               <div className="mt-1 size-1.5 rounded-full bg-primary" />
               <span>{reason}</span>
@@ -284,8 +283,8 @@ function Contact() {
           ))}
         </ul>
         <Button variant="ghost" className="px-0 text-sm font-semibold" asChild>
-          <Link href="mailto:hello@custillano.dev">
-            hello@custillano.dev
+          <Link href={`mailto:${contact.email}`}>
+            {contact.email}
             <ArrowRight className="ml-2 size-4" />
           </Link>
         </Button>
