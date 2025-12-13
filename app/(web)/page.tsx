@@ -53,14 +53,6 @@ const modePreviews = [
     icon: Terminal,
   },
   {
-    label: "Web Mode",
-    title: "Editorial narrative",
-    description:
-      "A tactile 2D site optimized for reading and showcasing actual product systems.",
-    href: "/",
-    icon: Layers,
-  },
-  {
     label: "Immersive Mode",
     title: "Three.js playground",
     description:
@@ -178,11 +170,11 @@ function Modes() {
       <div className="flex flex-col gap-3">
         <h2 className="text-2xl font-semibold">Three ways to explore</h2>
         <p className="text-muted-foreground">
-          Mode switching is instant because everything reads from the same
-          narrative config. Pick your vibe.
+          You are inside the editorial web experience by default. Jump over to
+          the other interfaces whenever you want a different vibe.
         </p>
       </div>
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         {modePreviews.map((mode) => {
           const Icon = mode.icon;
           return (
@@ -203,7 +195,7 @@ function Modes() {
               <CardFooter className="pt-0">
                 <Button variant="ghost" className="px-0" asChild>
                   <Link href={mode.href}>
-                    Enter mode
+                    Enter {mode.label.toLowerCase()}
                     <ArrowRight className="ml-2 size-4" />
                   </Link>
                 </Button>
