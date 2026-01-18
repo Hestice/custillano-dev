@@ -4,7 +4,7 @@ export type ModeKey = "web" | "cli" | "immersive";
 
 export const siteConfig = {
   info: {
-    owner: "Marcus Custillano",
+    owner: "Marcus Martillano",
     siteName: "custillano.dev",
     focusAreas: ["Product Design", "Creative Technology", "Spatial UX"],
     description:

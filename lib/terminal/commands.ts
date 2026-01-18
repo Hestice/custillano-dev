@@ -10,6 +10,9 @@ import { siteConfig } from "@/config/site";
 
 const fs = getFileSystem();
 
+// Delay duration in milliseconds for commands that need visual feedback
+const COMMAND_DELAY_MS = 500;
+
 export const commands: Record<string, Command> = {
   cd: {
     name: "cd",
@@ -186,6 +189,7 @@ export const commands: Record<string, Command> = {
     name: "exit",
     description: "Exit terminal (navigate back to web mode)",
     aliases: ["quit", "q"],
+    delay: COMMAND_DELAY_MS,
     effect: () => {
       if (typeof window !== "undefined") {
         window.location.href = "/";

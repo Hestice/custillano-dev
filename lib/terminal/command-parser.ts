@@ -36,18 +36,26 @@ export async function executeCommand(
   }
 
   try {
-    // Execute effect if present
-    if (cmd.effect) {
-      await cmd.effect(args, context);
-    }
-
-    // Get response
+    // Get response first (so it can be displayed immediately)
     let output = "";
     if (cmd.response) {
       if (typeof cmd.response === "function") {
         output = cmd.response(args, context);
       } else {
         output = cmd.response;
+      }
+    }
+
+    // Execute effect - with delay if specified, otherwise immediately
+    if (cmd.effect) {
+      if (cmd.delay && cmd.delay > 0) {
+        // Schedule effect to run after delay (non-blocking)
+        setTimeout(() => {
+          cmd.effect?.(args, context);
+        }, cmd.delay);
+      } else {
+        // Execute effect immediately
+        await cmd.effect(args, context);
       }
     }
 

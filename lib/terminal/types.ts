@@ -24,6 +24,7 @@ export type Command = {
   aliases?: string[];
   response?: string | ((args: string[], context: TerminalContext) => string);
   effect?: (args: string[], context: TerminalContext) => void | Promise<void>;
+  delay?: number; // Delay in milliseconds before executing effect
 };
 
 export type FileSystemNode = {
