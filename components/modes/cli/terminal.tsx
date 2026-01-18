@@ -17,6 +17,7 @@ export function Terminal() {
   const [currentDirectory, setCurrentDirectory] = useState("/");
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [showCompletions, setShowCompletions] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const context: TerminalContext = {
@@ -171,8 +172,19 @@ export function Terminal() {
             const newCursorPos = wordStart + result.commonPrefix.length;
             textarea.setSelectionRange(newCursorPos, newCursorPos);
           }, 0);
+          setShowCompletions([]);
+        } else if (result.completions.length > 1) {
+          // Multiple matches but common prefix equals current word - show options
+          // Show completions in output (they'll be displayed by TerminalOutput)
+          const uniqueCompletions = [...new Set(result.completions)];
+          context.addToHistory({
+            input: "",
+            output: uniqueCompletions.join("  "),
+            timestamp: Date.now(),
+          });
+        } else {
+          setShowCompletions([]);
         }
-        // If common prefix is same as current word, do nothing (user can press Tab again to cycle)
       } else if (e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey)) {
         // Word deletion: Ctrl+Backspace (Windows/Linux) or Option+Backspace (Mac)
         e.preventDefault();

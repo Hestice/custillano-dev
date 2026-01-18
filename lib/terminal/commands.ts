@@ -8,6 +8,16 @@ import {
 import type { Command, TerminalContext } from "./types";
 import { siteConfig } from "@/config/site";
 
+/**
+ * Gets the base URL for the site
+ */
+function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  return `https://${siteConfig.info.siteName}`;
+}
+
 const fs = getFileSystem();
 
 // Delay duration in milliseconds for commands that need visual feedback
@@ -90,25 +100,80 @@ export const commands: Record<string, Command> = {
 
   open: {
     name: "open",
-    description: "Open/access a section or item",
+    description: "Open/access a section or item, or open a URL in a new tab",
     response: (args: string[], context: TerminalContext) => {
       if (args.length === 0) {
         return "open: missing file operand\nTry 'open --help' for more information.";
       }
 
-      const targetPath = resolveAbsolutePath(context.currentDirectory, args[0]);
+      const firstArg = args[0];
+
+      // Check if the argument is a URL (starts with http:// or https://)
+      if (firstArg.startsWith("http://") || firstArg.startsWith("https://")) {
+        if (typeof window !== "undefined") {
+          window.open(firstArg, "_blank", "noopener,noreferrer");
+          return `Opening ${firstArg} in a new tab...`;
+        }
+        return `Would open ${firstArg} in a new tab`;
+      }
+
+      // Check if the argument matches a mode href (like /terminal, /experience, /)
+      const matchingMode = siteConfig.modes.find(
+        (mode) => mode.href === firstArg
+      );
+      if (matchingMode) {
+        const fullUrl = `${getBaseUrl()}${matchingMode.href}`;
+        if (typeof window !== "undefined") {
+          window.open(fullUrl, "_blank", "noopener,noreferrer");
+          return `Opening ${fullUrl} in a new tab...`;
+        }
+        return `Would open ${fullUrl} in a new tab`;
+      }
+
+      // Try to resolve as filesystem path first to check for links
+      const targetPath = resolveAbsolutePath(context.currentDirectory, firstArg);
+      if (pathExists(fs, targetPath)) {
+        const node = getNode(fs, targetPath);
+        if (node?.content && typeof node.content === "object") {
+          const content = node.content as Record<string, unknown>;
+          // If the node has a link, open it directly
+          if (content.link && typeof content.link === "string") {
+            if (typeof window !== "undefined") {
+              window.open(content.link, "_blank", "noopener,noreferrer");
+              return `Opening ${content.link} in a new tab...`;
+            }
+            return `Would open ${content.link} in a new tab`;
+          }
+        }
+      }
+
+      // Check if the argument matches a project name (for easier access)
+      const normalizedArg = firstArg.toLowerCase().replace(/\s+/g, "-");
+      const matchingProject = siteConfig.projects.find(
+        (project) => 
+          project.link === firstArg || 
+          project.name.toLowerCase() === firstArg.toLowerCase() ||
+          project.name.toLowerCase().replace(/\s+/g, "-") === normalizedArg
+      );
+      if (matchingProject && matchingProject.link) {
+        if (typeof window !== "undefined") {
+          window.open(matchingProject.link, "_blank", "noopener,noreferrer");
+          return `Opening ${matchingProject.link} in a new tab...`;
+        }
+        return `Would open ${matchingProject.link} in a new tab`;
+      }
 
       if (!pathExists(fs, targetPath)) {
-        return `open: cannot open '${args[0]}': No such file or directory`;
+        return `open: cannot open '${firstArg}': No such file or directory`;
       }
 
       const node = getNode(fs, targetPath);
       if (!node) {
-        return `open: cannot open '${args[0]}': Unknown error`;
+        return `open: cannot open '${firstArg}': Unknown error`;
       }
 
       if (node.type === "directory") {
-        return `open: '${args[0]}' is a directory`;
+        return `open: '${firstArg}' is a directory`;
       }
 
       if (node.content && typeof node.content === "object") {
@@ -116,7 +181,13 @@ export const commands: Record<string, Command> = {
         let output = `\n${node.name}\n${"=".repeat(node.name.length)}\n\n`;
 
         if (content.name || content.title) {
-          output += `Name: ${content.name || content.title}\n`;
+          const nameOrTitle = content.name || content.title;
+          // Display icon inline with name/title if present
+          if (content.icon && typeof content.icon === "string") {
+            output += `[icon:${content.icon}] Name: ${nameOrTitle}\n`;
+          } else {
+            output += `Name: ${nameOrTitle}\n`;
+          }
         }
         if (content.role) {
           output += `Role: ${content.role}\n`;
@@ -129,6 +200,14 @@ export const commands: Record<string, Command> = {
         }
         if (content.link) {
           output += `\nLink: ${content.link}\n`;
+        }
+        if (content.href) {
+          const href = content.href as string;
+          // If href is a relative path, construct full URL
+          const fullUrl = href.startsWith("http") 
+            ? href 
+            : `${getBaseUrl()}${href}`;
+          output += `\nLink: ${fullUrl}\n`;
         }
         if (content.email) {
           output += `\nEmail: ${content.email}\n`;
@@ -153,7 +232,7 @@ export const commands: Record<string, Command> = {
         return node.content;
       }
 
-      return `open: cannot display '${args[0]}': Unsupported content type`;
+      return `open: cannot display '${firstArg}': Unsupported content type`;
     },
   },
 
