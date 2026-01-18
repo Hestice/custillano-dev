@@ -1,9 +1,18 @@
+export type CommandState = {
+  type: string;
+  data: Record<string, unknown>;
+  currentStep?: number;
+  prompt?: string;
+};
+
 export type TerminalContext = {
   currentDirectory: string;
   history: CommandHistoryEntry[];
   setCurrentDirectory: (path: string) => void;
   addToHistory: (entry: CommandHistoryEntry) => void;
   clearHistory: () => void;
+  commandState?: CommandState | null;
+  setCommandState?: (state: CommandState | null) => void;
 };
 
 export type CommandHistoryEntry = {

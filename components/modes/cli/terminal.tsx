@@ -8,6 +8,7 @@ import { getCompletions } from "@/lib/terminal/autocomplete";
 import type {
   TerminalContext,
   CommandHistoryEntry,
+  CommandState,
 } from "@/lib/terminal/types";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ export function Terminal() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [showCompletions, setShowCompletions] = useState<string[]>([]);
+  const [commandState, setCommandState] = useState<CommandState | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const context: TerminalContext = {
@@ -33,11 +35,169 @@ export function Terminal() {
       setHistory([]);
       setCommandHistory([]);
       setHistoryIndex(-1);
+      setCommandState(null);
     },
+    commandState,
+    setCommandState,
   };
 
   const handleExecute = useCallback(async () => {
     const trimmedInput = input.trim();
+    
+    // Handle interactive command state
+    if (commandState && commandState.type === "email") {
+      const step = commandState.currentStep || 0;
+      const data = commandState.data as { name?: string; email?: string; body?: string };
+
+      // Add the input to history
+      const entry: CommandHistoryEntry = {
+        input: trimmedInput || "",
+        output: "",
+        timestamp: Date.now(),
+        error: false,
+      };
+      setHistory((prev) => [...prev, entry]);
+
+      if (step === 0) {
+        // Collect name
+        if (!trimmedInput) {
+          context.addToHistory({
+            input: "",
+            output: "Name cannot be empty. Name: ",
+            timestamp: Date.now(),
+          });
+          setInput("");
+          return;
+        }
+        data.name = trimmedInput;
+        setCommandState({
+          type: "email",
+          data,
+          currentStep: 1,
+          prompt: "Work email: ",
+        });
+        context.addToHistory({
+          input: "",
+          output: "Work email: ",
+          timestamp: Date.now(),
+        });
+      } else if (step === 1) {
+        // Collect email
+        if (!trimmedInput) {
+          context.addToHistory({
+            input: "",
+            output: "Email cannot be empty. Work email: ",
+            timestamp: Date.now(),
+          });
+          setInput("");
+          return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedInput)) {
+          context.addToHistory({
+            input: "",
+            output: "Invalid email format. Work email: ",
+            timestamp: Date.now(),
+            error: true,
+          });
+          setInput("");
+          return;
+        }
+        data.email = trimmedInput;
+        setCommandState({
+          type: "email",
+          data,
+          currentStep: 2,
+          prompt: "Message (press Enter twice to finish): ",
+        });
+        context.addToHistory({
+          input: "",
+          output: "Message (press Enter twice to finish): ",
+          timestamp: Date.now(),
+        });
+      } else if (step === 2) {
+        // Collect body (multi-line)
+        if (!data.body) {
+          data.body = trimmedInput;
+        } else {
+          // If body already exists, append with newline
+          data.body += "\n" + trimmedInput;
+        }
+        
+        // Check if user pressed Enter twice (empty line to finish)
+        if (trimmedInput === "" && data.body.trim() !== "") {
+          // Finish and send email
+          setCommandState(null);
+          
+          try {
+            const baseUrl = typeof window !== "undefined" 
+              ? `${window.location.protocol}//${window.location.host}`
+              : "https://custillano.dev";
+            
+            context.addToHistory({
+              input: "",
+              output: "Sending email...",
+              timestamp: Date.now(),
+            });
+
+            const response = await fetch(`${baseUrl}/api/contact`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                name: (data.name || "").trim(),
+                email: (data.email || "").trim(),
+                body: (data.body || "").trim(),
+              }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              context.addToHistory({
+                input: "",
+                output: `Error: ${result.error || "Failed to send email"}`,
+                timestamp: Date.now(),
+                error: true,
+              });
+            } else {
+              context.addToHistory({
+                input: "",
+                output: "Email sent successfully!",
+                timestamp: Date.now(),
+              });
+            }
+          } catch (error) {
+            context.addToHistory({
+              input: "",
+              output: `Error: ${error instanceof Error ? error.message : "Failed to send email"}`,
+              timestamp: Date.now(),
+              error: true,
+            });
+          }
+        } else {
+          // Continue collecting body
+          setCommandState({
+            type: "email",
+            data,
+            currentStep: 2,
+            prompt: "",
+          });
+        }
+      }
+      
+      setInput("");
+      setHistoryIndex(-1);
+      
+      // Scroll to bottom
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      }, 0);
+      return;
+    }
     
     if (!trimmedInput) {
       // Allow empty input to create a blank line
@@ -83,7 +243,7 @@ export function Terminal() {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
       }
     }, 0);
-  }, [input, currentDirectory]);
+  }, [input, currentDirectory, commandState, context]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -117,6 +277,15 @@ export function Terminal() {
         }
       } else if (e.key === "Escape") {
         e.preventDefault();
+        if (commandState) {
+          // Cancel interactive command
+          setCommandState(null);
+          context.addToHistory({
+            input: "",
+            output: "\nCommand cancelled.",
+            timestamp: Date.now(),
+          });
+        }
         setInput("");
         setHistoryIndex(-1);
       } else if (e.key === "Tab") {
@@ -240,7 +409,7 @@ export function Terminal() {
         }, 0);
       }
     },
-    [handleExecute, commandHistory, historyIndex, input, context]
+    [handleExecute, commandHistory, historyIndex, input, context, commandState]
   );
 
   useEffect(() => {
@@ -262,7 +431,14 @@ export function Terminal() {
     }
   }, []);
 
-  const prompt = currentDirectory === "/" ? "$ " : `$ ${currentDirectory} `;
+  const getPrompt = () => {
+    if (commandState?.prompt) {
+      return commandState.prompt;
+    }
+    return currentDirectory === "/" ? "$ " : `$ ${currentDirectory} `;
+  };
+
+  const prompt = getPrompt();
 
   return (
     <div

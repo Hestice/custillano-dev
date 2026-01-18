@@ -130,6 +130,11 @@ export function createFileSystem(): FileSystem {
         email: siteConfig.contact.email,
         badge: siteConfig.contact.badge,
       }),
+      createFileSystemNode("email", "file", "/contact/email", undefined, {
+        type: "email_composer",
+        description: "Send an email via the terminal",
+        usage: "Type 'email' to start the email composer, or use: email --name \"Name\" --email \"email@example.com\" --body \"Message\"",
+      }),
     ]),
     createFileSystemNode(
       "capabilities",
