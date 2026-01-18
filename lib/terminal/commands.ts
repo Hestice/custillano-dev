@@ -178,6 +178,22 @@ export const commands: Record<string, Command> = {
 
       if (node.content && typeof node.content === "object") {
         const content = node.content as Record<string, unknown>;
+        
+        // Special handling for email composer file
+        if (content.type === "email_composer") {
+          // Trigger email command interactively
+          if (context.setCommandState) {
+            context.setCommandState({
+              type: "email",
+              data: {},
+              currentStep: 0,
+              prompt: "Name: ",
+            });
+            return "Email composer (interactive mode)\nName: ";
+          }
+          return "Email composer\n\nUsage:\n  email --name \"Name\" --email \"email@example.com\" --body \"Message\"\n  email (for interactive mode)";
+        }
+        
         let output = `\n${node.name}\n${"=".repeat(node.name.length)}\n\n`;
 
         if (content.name || content.title) {
@@ -223,6 +239,9 @@ export const commands: Record<string, Command> = {
         }
         if (content.owner) {
           output += `\nOwner: ${content.owner}\n`;
+        }
+        if (content.usage) {
+          output += `\nUsage:\n${content.usage}\n`;
         }
 
         return output;
