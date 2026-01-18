@@ -36,7 +36,25 @@ export function Terminal() {
 
   const handleExecute = useCallback(async () => {
     const trimmedInput = input.trim();
+    
     if (!trimmedInput) {
+      // Allow empty input to create a blank line
+      const entry: CommandHistoryEntry = {
+        input: "",
+        output: "",
+        timestamp: Date.now(),
+        error: false,
+      };
+      setHistory((prev) => [...prev, entry]);
+      setHistoryIndex(-1);
+      setInput("");
+
+      // Scroll to bottom
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      }, 0);
       return;
     }
 
