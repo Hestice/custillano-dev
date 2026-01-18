@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+// Server-side environment variables (no NEXT_PUBLIC prefix needed in API routes)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 interface EmailSubmission {
   name: string;
@@ -54,15 +55,47 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Supabase function error:", error);
+      
+      // Try to extract error details from the response
+      let errorDetails = error.message || "Failed to send email";
+      let errorHint = null;
+      
+      // If there's a context with a response, try to read the body
+      if (error.context?.response) {
+        try {
+          const errorBody = await error.context.response.json();
+          errorDetails = errorBody.error || errorDetails;
+          errorHint = errorBody.hint || errorBody.details;
+        } catch (e) {
+          // If JSON parsing fails, try text
+          try {
+            const errorText = await error.context.response.text();
+            errorDetails = errorText || errorDetails;
+          } catch (e2) {
+            // Ignore parsing errors
+          }
+        }
+      }
+      
       return NextResponse.json(
-        { error: error.message || "Failed to send email" },
+        { 
+          error: errorDetails,
+          hint: errorHint,
+          type: "function_error"
+        },
         { status: 500 }
       );
     }
 
     if (!data || !data.success) {
+      console.error("Function returned error:", data);
       return NextResponse.json(
-        { error: data?.error || "Failed to send email" },
+        { 
+          error: data?.error || "Failed to send email",
+          details: data?.details,
+          hint: data?.hint,
+          type: "function_response_error"
+        },
         { status: 500 }
       );
     }

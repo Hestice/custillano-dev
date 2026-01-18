@@ -1,3 +1,6 @@
+/// <reference path="../deno.d.ts" />
+// @ts-nocheck - Deno URL imports are resolved at runtime by Supabase Edge Functions
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -73,8 +76,24 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    // Supabase automatically provides these env vars in Edge Functions
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("SUPABASE_PROJECT_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase config:", { 
+        hasUrl: !!supabaseUrl, 
+        hasServiceKey: !!supabaseServiceKey 
+      });
+      return new Response(
+        JSON.stringify({ error: "Supabase configuration missing in Edge Function" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Store submission in database first
@@ -91,7 +110,11 @@ serve(async (req) => {
     if (dbError) {
       console.error("Database error:", dbError);
       return new Response(
-        JSON.stringify({ error: "Failed to store submission" }),
+        JSON.stringify({ 
+          error: "Failed to store submission",
+          details: dbError.message,
+          hint: dbError.code === "PGRST116" ? "Table 'email_submissions' may not exist. Run the migration first." : undefined
+        }),
         {
           status: 500,
           headers: { "Content-Type": "application/json" },

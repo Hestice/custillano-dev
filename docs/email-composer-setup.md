@@ -61,16 +61,14 @@ Or via the Supabase dashboard:
 Create a `.env.local` file in the root of your project:
 
 ```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Alternative names (for compatibility)
+# Supabase Configuration (server-side, no NEXT_PUBLIC prefix needed)
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 You can find these values in your Supabase project settings under API.
+
+**Note:** Since the API route runs server-side, we use environment variables without the `NEXT_PUBLIC_` prefix. This keeps your keys secure and not exposed to the client.
 
 ### 5. Update Recipient Email
 
