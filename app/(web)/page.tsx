@@ -21,8 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { EmailComposer } from "@/components/shared/email-composer";
 import { siteConfig } from "@/config/site";
 import type { IconKey, ModeKey } from "@/config/site";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -273,17 +272,9 @@ function Contact({ contact }: { contact: typeof siteConfig.contact }) {
               Sends straight to my inbox so we can plan the right experience.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Input placeholder="Name" />
-            <Input placeholder="Work email" type="email" />
-            <Textarea placeholder="Scope, timeline, or anything else" />
+          <CardContent>
+            <EmailComposer mode="web" />
           </CardContent>
-          <CardFooter>
-            <Button className="w-full">
-              Send a note
-              <ArrowRight className="ml-2 size-4" />
-            </Button>
-          </CardFooter>
         </Card>
       </div>
       <div className="space-y-4 rounded-2xl border border-border/70 p-6">

@@ -264,6 +264,114 @@ export const commands: Record<string, Command> = {
     response: () => "",
   },
 
+  email: {
+    name: "email",
+    description: "Send an email (use --name, --email, --body flags or run interactively)",
+    response: (args: string[], context: TerminalContext) => {
+      // Parse command-line arguments
+      const parseArgs = (args: string[]): { name?: string; email?: string; body?: string } => {
+        const result: { name?: string; email?: string; body?: string } = {};
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === "--name" && i + 1 < args.length) {
+            result.name = args[i + 1].replace(/^["']|["']$/g, ""); // Remove quotes
+            i++;
+          } else if (args[i] === "--email" && i + 1 < args.length) {
+            result.email = args[i + 1].replace(/^["']|["']$/g, "");
+            i++;
+          } else if (args[i] === "--body" && i + 1 < args.length) {
+            result.body = args[i + 1].replace(/^["']|["']$/g, "");
+            i++;
+          }
+        }
+        return result;
+      };
+
+      const parsed = parseArgs(args);
+
+      // If all arguments provided, send immediately
+      if (parsed.name && parsed.email && parsed.body) {
+        // This will be handled by the effect
+        return "Sending email...";
+      }
+
+      // Otherwise, start interactive mode
+      if (context.setCommandState) {
+        context.setCommandState({
+          type: "email",
+          data: parsed,
+          currentStep: 0,
+          prompt: "Name: ",
+        });
+        return "Email composer (interactive mode)\nName: ";
+      }
+
+      return "Email command requires either all arguments (--name, --email, --body) or interactive mode.\nUsage: email --name \"John\" --email \"john@example.com\" --body \"message\"\nOr: email (for interactive mode)";
+    },
+    effect: async (args: string[], context: TerminalContext) => {
+      const parseArgs = (args: string[]): { name?: string; email?: string; body?: string } => {
+        const result: { name?: string; email?: string; body?: string } = {};
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === "--name" && i + 1 < args.length) {
+            result.name = args[i + 1].replace(/^["']|["']$/g, "");
+            i++;
+          } else if (args[i] === "--email" && i + 1 < args.length) {
+            result.email = args[i + 1].replace(/^["']|["']$/g, "");
+            i++;
+          } else if (args[i] === "--body" && i + 1 < args.length) {
+            result.body = args[i + 1].replace(/^["']|["']$/g, "");
+            i++;
+          }
+        }
+        return result;
+      };
+
+      const parsed = parseArgs(args);
+
+      // Only send if all arguments are provided
+      if (parsed.name && parsed.email && parsed.body) {
+        try {
+          const baseUrl = getBaseUrl();
+          const response = await fetch(`${baseUrl}/api/contact`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: parsed.name.trim(),
+              email: parsed.email.trim(),
+              body: parsed.body.trim(),
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            context.addToHistory({
+              input: "",
+              output: `Error: ${data.error || "Failed to send email"}`,
+              timestamp: Date.now(),
+              error: true,
+            });
+            return;
+          }
+
+          context.addToHistory({
+            input: "",
+            output: "Email sent successfully!",
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          context.addToHistory({
+            input: "",
+            output: `Error: ${error instanceof Error ? error.message : "Failed to send email"}`,
+            timestamp: Date.now(),
+            error: true,
+          });
+        }
+      }
+    },
+  },
+
   exit: {
     name: "exit",
     description: "Exit terminal (navigate back to web mode)",
