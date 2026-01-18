@@ -10,7 +10,7 @@ export const SCENE_BOUNDS: SceneBounds = {
   maxZ: GROUND_HALF,
 };
 
-export const CHARACTER_SPEED = 5;
+export const CHARACTER_SPEED = 20;
 export const CHARACTER_ROTATION_SPEED = 2;
 
 export const SECTION_SPACING = 15;
