@@ -152,7 +152,7 @@ export function Terminal() {
     >
       <div className="max-w-4xl mx-auto space-y-4">
         <TerminalOutput history={history} />
-        <div className="flex items-start">
+        <div className="flex items-start w-full">
           <TerminalInput
             value={input}
             onChange={setInput}

@@ -31,7 +31,7 @@ export function TerminalInput({
   }, [value]);
 
   return (
-    <div className="flex items-center font-mono text-sm">
+    <div className="flex items-center font-mono text-sm w-full">
       <span className="text-muted-foreground select-none">{prompt}</span>
       <div className="relative flex-1">
         <span
