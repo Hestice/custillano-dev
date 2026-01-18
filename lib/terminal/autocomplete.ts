@@ -494,7 +494,14 @@ function getPathCompletionsInternal(
   // List directory contents
   const contents = listDirectory(fs, searchDir);
   if (!contents) {
+    // If prefix is empty, don't do recursive search - just return empty
+    // (empty prefix means list current directory, which has no contents)
+    if (searchPrefix === "" || prefix === "") {
+      return { completions: [], commonPrefix: "" };
+    }
+    
     // If no contents in current directory, try searching recursively
+    // But only if we have a non-empty prefix (not listing current directory)
     if (searchPrefix && !prefix.includes("/")) {
       const allMatches: Array<{ name: string; path: string; type: "file" | "directory" }> = [];
       searchFileSystem(fs.root, searchPrefix, "/", allMatches);
@@ -541,7 +548,8 @@ function getPathCompletionsInternal(
 
   // If no matches in current directory and we're searching for a simple name (no slashes),
   // try recursive search
-  if (matches.length === 0 && searchPrefix && !prefix.includes("/")) {
+  // BUT: Don't do recursive search if prefix is empty (we're listing current directory)
+  if (matches.length === 0 && searchPrefix && !prefix.includes("/") && prefix !== "") {
     const allMatches: Array<{ name: string; path: string; type: "file" | "directory" }> = [];
     searchFileSystem(fs.root, searchPrefix, "/", allMatches);
     
