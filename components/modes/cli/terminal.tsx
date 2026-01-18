@@ -84,7 +84,7 @@ export function Terminal() {
   }, [input, currentDirectory]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter") {
         e.preventDefault();
         handleExecute();
@@ -122,10 +122,10 @@ export function Terminal() {
   useEffect(() => {
     // Keep focus on input when clicking terminal
     const handleClick = (e: MouseEvent) => {
-      // Find the input element and focus it
-      const input = containerRef.current?.querySelector("input");
-      if (input && document.activeElement !== input) {
-        input.focus();
+      // Find the textarea element and focus it
+      const textarea = containerRef.current?.querySelector("textarea");
+      if (textarea && document.activeElement !== textarea) {
+        textarea.focus();
       }
     };
 
