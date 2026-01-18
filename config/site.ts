@@ -1,4 +1,4 @@
-export type IconKey = "layers" | "command" | "sparkles" | "terminal" | "joystick";
+export type IconKey = "layers" | "command" | "sparkles" | "terminal" | "joystick" | "globe";
 
 export type ModeKey = "web" | "cli" | "immersive";
 
@@ -56,6 +56,16 @@ export const siteConfig = {
       icon: "terminal",
     },
     {
+      key: "web",
+      label: "Web Mode",
+      title: "Web-based portfolio",
+      description:
+        "A web-based portfolio for recruiters who want a more traditional experience.",
+      href: "/",
+      icon: "globe",
+      activeModes: ["cli", "immersive"],
+    },
+    {
       key: "immersive",
       label: "Immersive Mode",
       title: "Three.js playground",
@@ -88,7 +98,7 @@ export const siteConfig = {
       "Creative technology consulting",
       "Speaking or workshop invites",
     ],
-    email: "hello@custillano.dev",
+    email: "custillano@gmail.com",
     badge: "Open for collaborations",
   },
   projects: [

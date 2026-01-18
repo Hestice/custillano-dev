@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
   Command,
+  Globe,
   Joystick,
   Layers,
   Sparkles,
@@ -23,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { siteConfig } from "@/config/site";
-import type { IconKey } from "@/config/site";
+import type { IconKey, ModeKey } from "@/config/site";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const iconMap: Record<IconKey, LucideIcon> = {
@@ -32,6 +33,7 @@ const iconMap: Record<IconKey, LucideIcon> = {
   sparkles: Sparkles,
   terminal: Terminal,
   joystick: Joystick,
+  globe: Globe,
 };
 
 export const metadata: Metadata = {
@@ -171,6 +173,16 @@ function Projects({ projects }: { projects: typeof siteConfig.projects }) {
 }
 
 function Modes({ modes }: { modes: typeof siteConfig.modes }) {
+  const currentMode: ModeKey = "web";
+  
+  const filteredModes = modes.filter((mode) => {
+    if ("activeModes" in mode && mode.activeModes) {
+      const activeModes = mode.activeModes as readonly ModeKey[];
+      return activeModes.some((m) => m === currentMode);
+    }
+    return true;
+  });
+
   return (
     <section id="modes" className="space-y-6">
       <div className="flex flex-col gap-3">
@@ -181,7 +193,7 @@ function Modes({ modes }: { modes: typeof siteConfig.modes }) {
         </p>
       </div>
       <div className="grid gap-6 md:grid-cols-2">
-        {modes.map((mode) => {
+        {filteredModes.map((mode) => {
           const Icon = iconMap[mode.icon];
           return (
             <Card

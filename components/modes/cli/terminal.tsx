@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { TerminalInput } from "./terminal-input";
 import { TerminalOutput } from "./terminal-output";
 import { executeCommand } from "@/lib/terminal/command-parser";
+import { getCompletions } from "@/lib/terminal/autocomplete";
 import type {
   TerminalContext,
   CommandHistoryEntry,
@@ -16,6 +17,7 @@ export function Terminal() {
   const [currentDirectory, setCurrentDirectory] = useState("/");
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [showCompletions, setShowCompletions] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const context: TerminalContext = {
@@ -85,6 +87,9 @@ export function Terminal() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      const textarea = e.currentTarget;
+      const cursorPosition = textarea.selectionStart;
+
       if (e.key === "Enter") {
         e.preventDefault();
         handleExecute();
@@ -114,9 +119,128 @@ export function Terminal() {
         e.preventDefault();
         setInput("");
         setHistoryIndex(-1);
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        const result = getCompletions(input, cursorPosition, context);
+        
+        if (result.completions.length === 0) {
+          // No completions available
+          return;
+        }
+
+        // Find the current word being typed
+        let wordStart = cursorPosition;
+        let wordEnd = cursorPosition;
+        
+        // Find start of word
+        while (wordStart > 0 && !/\s/.test(input[wordStart - 1])) {
+          wordStart--;
+        }
+        
+        // Find end of word
+        while (wordEnd < input.length && !/\s/.test(input[wordEnd])) {
+          wordEnd++;
+        }
+
+        const currentWord = input.substring(wordStart, wordEnd);
+        
+        if (result.completions.length === 1) {
+          // Single match - complete fully
+          const completion = result.completions[0];
+          const newInput =
+            input.substring(0, wordStart) +
+            completion +
+            (result.isDirectory ? "/" : "") +
+            input.substring(wordEnd);
+          setInput(newInput);
+          
+          // Set cursor position after completion
+          setTimeout(() => {
+            const newCursorPos = wordStart + completion.length + (result.isDirectory ? 1 : 0);
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+          }, 0);
+        } else if (result.completions.length > 1 && result.commonPrefix.length > currentWord.length) {
+          // Multiple matches - complete common prefix
+          const newInput =
+            input.substring(0, wordStart) +
+            result.commonPrefix +
+            input.substring(wordEnd);
+          setInput(newInput);
+          
+          // Set cursor position after common prefix
+          setTimeout(() => {
+            const newCursorPos = wordStart + result.commonPrefix.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+          }, 0);
+          setShowCompletions([]);
+        } else if (result.completions.length > 1) {
+          // Multiple matches but common prefix equals current word - show options
+          // Show completions in output (they'll be displayed by TerminalOutput)
+          const uniqueCompletions = [...new Set(result.completions)];
+          context.addToHistory({
+            input: "",
+            output: uniqueCompletions.join("  "),
+            timestamp: Date.now(),
+          });
+        } else {
+          setShowCompletions([]);
+        }
+      } else if (e.key === "Backspace" && (e.ctrlKey || e.altKey || e.metaKey)) {
+        // Word deletion: Ctrl+Backspace (Windows/Linux) or Option+Backspace (Mac)
+        e.preventDefault();
+        
+        const selectionStart = textarea.selectionStart;
+        const selectionEnd = textarea.selectionEnd;
+        
+        if (selectionStart !== selectionEnd) {
+          // Delete selected text
+          const newInput = input.substring(0, selectionStart) + input.substring(selectionEnd);
+          setInput(newInput);
+          setTimeout(() => {
+            textarea.setSelectionRange(selectionStart, selectionStart);
+          }, 0);
+          return;
+        }
+
+        // Find word boundaries (whitespace or hyphen are separators)
+        let deleteStart = selectionStart;
+        
+        // If cursor is at start, nothing to delete
+        if (deleteStart === 0) {
+          return;
+        }
+
+        // Check if we're at a separator (whitespace or hyphen)
+        const charBefore = input[deleteStart - 1];
+        const isAtSeparator = /\s/.test(charBefore) || charBefore === "-";
+        
+        if (isAtSeparator) {
+          // Delete the separator(s) and the previous word
+          // First, skip all separators
+          while (deleteStart > 0 && (/\s/.test(input[deleteStart - 1]) || input[deleteStart - 1] === "-")) {
+            deleteStart--;
+          }
+          // Then, find the start of the previous word
+          while (deleteStart > 0 && !/\s/.test(input[deleteStart - 1]) && input[deleteStart - 1] !== "-") {
+            deleteStart--;
+          }
+        } else {
+          // We're in the middle of a word - delete from word start to cursor
+          while (deleteStart > 0 && !/\s/.test(input[deleteStart - 1]) && input[deleteStart - 1] !== "-") {
+            deleteStart--;
+          }
+        }
+
+        const newInput = input.substring(0, deleteStart) + input.substring(selectionStart);
+        setInput(newInput);
+        
+        // Set cursor position after deletion
+        setTimeout(() => {
+          textarea.setSelectionRange(deleteStart, deleteStart);
+        }, 0);
       }
     },
-    [handleExecute, commandHistory, historyIndex]
+    [handleExecute, commandHistory, historyIndex, input, context]
   );
 
   useEffect(() => {
