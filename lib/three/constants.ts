@@ -11,7 +11,12 @@ export const SCENE_BOUNDS: SceneBounds = {
 };
 
 export const CHARACTER_SPEED = 20;
-export const CHARACTER_ROTATION_SPEED = 2;
+export const CHARACTER_ACCELERATION = 50; // How fast the rocket accelerates
+export const CHARACTER_DECELERATION = 30; // How fast the rocket decelerates (drag/friction)
+export const CHARACTER_ROTATION_SPEED_MIN = 2; // Base rotation speed for small turns (fine control)
+export const CHARACTER_ROTATION_SPEED_MAX = 6; // Maximum rotation speed for sharp turns
+export const TURN_PENALTY_FACTOR = 0.25; // Reduced penalty for sharp turns (0-1)
+export const MIN_TURN_ANGLE = Math.PI / 4; // Angle threshold (45 degrees) before turn penalty applies
 
 export const SECTION_SPACING = 15;
 export const SECTION_HEIGHT = 2;
