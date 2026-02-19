@@ -273,7 +273,7 @@ function Contact({ contact }: { contact: typeof siteConfig.contact }) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <EmailComposer mode="web" />
+            <EmailComposer />
           </CardContent>
         </Card>
       </div>

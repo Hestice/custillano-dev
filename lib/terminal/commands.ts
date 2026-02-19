@@ -106,7 +106,13 @@ export const commands: Record<string, Command> = {
         return "open: missing file operand\nTry 'open --help' for more information.";
       }
 
-      const firstArg = args[0];
+      const hasSiteFlag = args.includes("--site");
+      const filteredArgs = args.filter((a) => a !== "--site");
+      const firstArg = filteredArgs[0];
+
+      if (!firstArg) {
+        return "open: missing file operand\nTry 'open --help' for more information.";
+      }
 
       // Check if the argument is a URL (starts with http:// or https://)
       if (firstArg.startsWith("http://") || firstArg.startsWith("https://")) {
@@ -157,7 +163,27 @@ export const commands: Record<string, Command> = {
 
       if (node.content && typeof node.content === "object") {
         const content = node.content as Record<string, unknown>;
-        
+
+        // --site flag: open the link/href directly in a new tab
+        if (hasSiteFlag) {
+          const url =
+            typeof content.link === "string"
+              ? content.link
+              : typeof content.href === "string"
+                ? (content.href as string).startsWith("http")
+                  ? (content.href as string)
+                  : `${getBaseUrl()}${content.href}`
+                : null;
+          if (url) {
+            if (typeof window !== "undefined") {
+              window.open(url, "_blank", "noopener,noreferrer");
+              return `Opening ${url} in a new tab...`;
+            }
+            return `Would open ${url} in a new tab`;
+          }
+          return `open: '${firstArg}' has no associated link`;
+        }
+
         // Special handling for email composer file
         if (content.type === "email_composer") {
           // Trigger email command interactively

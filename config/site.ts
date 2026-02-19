@@ -81,8 +81,8 @@ export const siteConfig = {
       copy: "Configurable palettes sync across motion, typography, and even HDRI choices so each mode still feels cohesive.",
     },
     {
-      title: "Email bridge",
-      copy: "Shared composer component routes messages to the right inbox while keeping the experience inline.",
+      title: "Per-mode contact",
+      copy: "Each mode has its own way to reach out — form on web, interactive command on CLI, beacon in immersive.",
     },
     {
       title: "Mode-aware telemetry",
@@ -92,7 +92,7 @@ export const siteConfig = {
   contact: {
     title: "Tell me about your brief",
     description:
-      "The shared email composer will eventually live here. For now, drop a note with your focus and ideal mode.",
+      "Have a project, collaboration, or idea in mind? Drop a note and I'll get back to you.",
     reasons: [
       "Product design collaborations",
       "Creative technology consulting",
