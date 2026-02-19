@@ -93,7 +93,7 @@ export const PLANETS: PlanetData[] = [
     subPlanets: [
       {
         id: "projects-0",
-        name: "Signal Deck",
+        name: "Lesson Planner",
         sectionIndex: 0,
         offset: [-18, 2, -12],
         size: 4,
@@ -103,7 +103,7 @@ export const PLANETS: PlanetData[] = [
       },
       {
         id: "projects-1",
-        name: "Atlas Lab",
+        name: "The One Hour Project",
         sectionIndex: 1,
         offset: [16, -1, 8],
         size: 4.5,
@@ -113,13 +113,23 @@ export const PLANETS: PlanetData[] = [
       },
       {
         id: "projects-2",
-        name: "Courier CLI",
+        name: "Custillano Room",
         sectionIndex: 2,
         offset: [2, 2, -20],
         size: 3.5,
         color: "#6c5ce7",
         emissiveColor: "#5f3dc4",
         collectibleCount: 5,
+      },
+      {
+        id: "projects-3",
+        name: "VectorPM",
+        sectionIndex: 3,
+        offset: [-8, -2, 16],
+        size: 3,
+        color: "#fd79a8",
+        emissiveColor: "#e84393",
+        collectibleCount: 4,
       },
     ],
   },

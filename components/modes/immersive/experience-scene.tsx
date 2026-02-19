@@ -11,7 +11,9 @@ import { CollectibleRing } from "./collectibles/collectible-ring";
 import { SpaceBillboard } from "./billboards/space-billboard";
 import { GuideTrail } from "./navigation/guide-trail";
 import { BlackHole } from "./effects/black-hole";
-import { CAMERA_SETTINGS, LAUNCH, POI_FOCUS_RADIUS, POI_MAX_BLEND, POI_LOCK_HYSTERESIS, BLACK_HOLE } from "@/lib/three/constants";
+import { ProjectBlackHole } from "./effects/project-black-hole";
+import { CAMERA_SETTINGS, LAUNCH, POI_FOCUS_RADIUS, POI_MAX_BLEND, POI_LOCK_HYSTERESIS, BLACK_HOLE, PROJECT_BLACK_HOLE } from "@/lib/three/constants";
+import { siteConfig } from "@/config/site";
 import { PLANETS, getSubPlanetWorldPosition } from "./planets/planet-layout";
 import { NARRATION, PLANET_NARRATION_RADIUS } from "./state/story-data";
 import { useStory } from "./state/story-context";
@@ -337,6 +339,22 @@ function PlanetSystem({
             {/* Sub-planets */}
             {planet.subPlanets?.map((sub, subIndex) => {
               const worldPos = getSubPlanetWorldPosition(planet, subIndex);
+
+              // Compute project blackhole position (offset away from parent planet center)
+              const isProjectPlanet = planet.sectionKey === "projects";
+              const project = isProjectPlanet ? siteConfig.projects[sub.sectionIndex] : undefined;
+              let blackHolePos: [number, number, number] | undefined;
+              if (isProjectPlanet && project) {
+                const dirX = sub.offset[0];
+                const dirZ = sub.offset[2];
+                const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                blackHolePos = [
+                  worldPos[0] + (dirX / len) * PROJECT_BLACK_HOLE.offsetFromPlanet,
+                  worldPos[1],
+                  worldPos[2] + (dirZ / len) * PROJECT_BLACK_HOLE.offsetFromPlanet,
+                ];
+              }
+
               return (
                 <group key={sub.id}>
                   <Planet
@@ -371,6 +389,15 @@ function PlanetSystem({
                       collectedCount={getCollectedCount(sub.id)}
                       totalRequired={getTotalForPlanet(sub.id)}
                       characterPosition={characterPosition}
+                    />
+                  )}
+                  {isProjectPlanet && project && blackHolePos && (
+                    <ProjectBlackHole
+                      position={blackHolePos}
+                      link={project.link}
+                      color={sub.color}
+                      visible={isPlanetUnlocked(sub.id)}
+                      characterRef={characterRef}
                     />
                   )}
                 </group>

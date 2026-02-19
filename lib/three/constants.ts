@@ -111,6 +111,18 @@ export const STATION = {
   infoBoardColor: "#1a1a2e",
 };
 
+// Project black holes (project portals)
+export const PROJECT_BLACK_HOLE = {
+  coreRadius: 1,
+  accretionInnerRadius: 1.5,
+  accretionOuterRadius: 4,
+  swirlParticleCount: 50,
+  spawnDuration: 2,
+  eventHorizonRadius: 2.5,
+  approachRadius: 20,
+  offsetFromPlanet: 8,
+};
+
 // Black hole (contact portal)
 export const BLACK_HOLE = {
   position: [0, 2, -490] as [number, number, number],

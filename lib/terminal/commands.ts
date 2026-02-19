@@ -130,37 +130,16 @@ export const commands: Record<string, Command> = {
         return `Would open ${fullUrl} in a new tab`;
       }
 
-      // Try to resolve as filesystem path first to check for links
-      const targetPath = resolveAbsolutePath(context.currentDirectory, firstArg);
-      if (pathExists(fs, targetPath)) {
-        const node = getNode(fs, targetPath);
-        if (node?.content && typeof node.content === "object") {
-          const content = node.content as Record<string, unknown>;
-          // If the node has a link, open it directly
-          if (content.link && typeof content.link === "string") {
-            if (typeof window !== "undefined") {
-              window.open(content.link, "_blank", "noopener,noreferrer");
-              return `Opening ${content.link} in a new tab...`;
-            }
-            return `Would open ${content.link} in a new tab`;
-          }
-        }
-      }
+      // Try to resolve as filesystem path
+      let targetPath = resolveAbsolutePath(context.currentDirectory, firstArg);
 
-      // Check if the argument matches a project name (for easier access)
-      const normalizedArg = firstArg.toLowerCase().replace(/\s+/g, "-");
-      const matchingProject = siteConfig.projects.find(
-        (project) => 
-          project.link === firstArg || 
-          project.name.toLowerCase() === firstArg.toLowerCase() ||
-          project.name.toLowerCase().replace(/\s+/g, "-") === normalizedArg
-      );
-      if (matchingProject && matchingProject.link) {
-        if (typeof window !== "undefined") {
-          window.open(matchingProject.link, "_blank", "noopener,noreferrer");
-          return `Opening ${matchingProject.link} in a new tab...`;
+      // If not found, try matching a project name from any directory
+      if (!pathExists(fs, targetPath)) {
+        const normalizedArg = firstArg.toLowerCase().replace(/\s+/g, "-");
+        const projectPath = `/projects/${normalizedArg}`;
+        if (pathExists(fs, projectPath)) {
+          targetPath = projectPath;
         }
-        return `Would open ${matchingProject.link} in a new tab`;
       }
 
       if (!pathExists(fs, targetPath)) {

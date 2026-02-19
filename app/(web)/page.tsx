@@ -158,7 +158,7 @@ function Projects({ projects }: { projects: typeof siteConfig.projects }) {
             </CardContent>
             <CardFooter>
               <Button variant="ghost" className="px-0" asChild>
-                <Link href={project.link}>
+                <Link href={project.link} target="_blank" rel="noopener noreferrer">
                   View case study
                   <ArrowRight className="ml-2 size-4" />
                 </Link>

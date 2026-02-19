@@ -344,54 +344,30 @@ function getPathCompletions(
   context: TerminalContext,
   commandName?: string
 ): CompletionResult {
-  // For open command, also check links and mode hrefs
+  // For open command, also complete URLs and mode hrefs
   if (commandName === "open") {
-    // If prefix is empty, show all links and files in current directory
-    if (prefix === "") {
-      const linkCompletions = getAllLinkCompletions("", context.currentDirectory);
-      const pathCompletions = getPathCompletionsInternal("", context);
-      
-      // Merge link and path completions
-      const allCompletions = [
-        ...linkCompletions.completions,
-        ...pathCompletions.completions,
-      ];
-      
-      if (allCompletions.length > 0) {
-        const commonPrefix = findLongestCommonPrefix(allCompletions);
-        return {
-          completions: [...new Set(allCompletions)].sort(),
-          commonPrefix,
-          isDirectory: pathCompletions.isDirectory,
-        };
-      }
-      return { completions: [], commonPrefix: "" };
-    }
-    
-    // If it's a full URL or looks like a URL, try to complete all links in current directory
+    // URL prefix — complete against known links
     if (prefix.startsWith("http://") || prefix.startsWith("https://") || prefix.includes(".")) {
       const linkCompletions = getAllLinkCompletions(prefix, context.currentDirectory);
       if (linkCompletions.completions.length > 0) {
         return linkCompletions;
       }
-      // Fall back to mode hrefs for URLs (only if in root directory)
       if (context.currentDirectory === "/") {
         return getModeHrefCompletions(prefix);
       }
       return { completions: [], commonPrefix: "" };
     }
-    
-    // Always check mode hrefs for open command when prefix starts with / (only in root)
+
+    // Slash prefix in root — merge mode hrefs with filesystem paths
     if (prefix.startsWith("/") && context.currentDirectory === "/") {
       const modeCompletions = getModeHrefCompletions(prefix);
       const pathCompletions = getPathCompletionsInternal(prefix, context);
-      
-      // Merge mode and path completions
+
       const allCompletions = [
         ...modeCompletions.completions,
         ...pathCompletions.completions,
       ];
-      
+
       if (allCompletions.length > 0) {
         const commonPrefix = findLongestCommonPrefix(allCompletions);
         return {
@@ -400,41 +376,10 @@ function getPathCompletions(
           isDirectory: pathCompletions.isDirectory,
         };
       }
-      
-      // If no completions at all, return empty
       return { completions: [], commonPrefix: "" };
     }
-    
-    // Check for link completions by name in current directory (e.g., "signal" matches "Signal Deck" project link)
-    const linkCompletions = getAllLinkCompletions(prefix, context.currentDirectory);
-    if (linkCompletions.completions.length > 0) {
-      // Also merge with path completions
-      const pathCompletions = getPathCompletionsInternal(prefix, context);
-      const allCompletions = [
-        ...linkCompletions.completions,
-        ...pathCompletions.completions,
-      ];
-      
-      if (allCompletions.length > 0) {
-        const commonPrefix = findLongestCommonPrefix(allCompletions);
-        return {
-          completions: [...new Set(allCompletions)].sort(),
-          commonPrefix,
-          isDirectory: pathCompletions.isDirectory,
-        };
-      }
-    }
-    
-    // Also check mode hrefs for non-slash prefixes (like "term" should match "/terminal")
-    // But only if no path matches are found and we're in root directory
-    const pathCompletions = getPathCompletionsInternal(prefix, context);
-    if (pathCompletions.completions.length === 0 && context.currentDirectory === "/") {
-      // Try mode hrefs - check if any href's path part (without leading /) matches
-      const modeCompletions = getModeHrefCompletions(`/${prefix}`);
-      if (modeCompletions.completions.length > 0) {
-        return modeCompletions;
-      }
-    }
+
+    // Plain word — only complete filesystem paths (no link URLs)
   }
   
   return getPathCompletionsInternal(prefix, context);
