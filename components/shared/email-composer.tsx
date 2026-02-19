@@ -13,7 +13,6 @@ interface EmailComposerProps {
     email?: string;
     body?: string;
   };
-  mode?: "web" | "terminal";
 }
 
 interface FormData {
@@ -32,7 +31,6 @@ interface FormErrors {
 export function EmailComposer({
   onSubmit,
   defaultValues,
-  mode = "web",
 }: EmailComposerProps) {
   const [formData, setFormData] = useState<FormData>({
     name: defaultValues?.name || "",

@@ -83,6 +83,7 @@ export function createFileSystem(): FileSystem {
         role: project.role,
         stack: project.stack,
         link: project.link,
+        usage: `  open ${project.name.toLowerCase().replace(/\s+/g, "-")} --site    Open project in a new tab`,
       }
     )
   );
@@ -109,6 +110,7 @@ export function createFileSystem(): FileSystem {
       description: mode.description,
       href: mode.href,
       icon: mode.icon,
+      usage: `  open ${mode.key} --site    Open ${mode.label.toLowerCase()} in a new tab`,
     })
   );
 
@@ -129,6 +131,7 @@ export function createFileSystem(): FileSystem {
         reasons: siteConfig.contact.reasons,
         email: siteConfig.contact.email,
         badge: siteConfig.contact.badge,
+        usage: "  open contact/email    Start the interactive email composer\n  email                 Same as above (shortcut)\n  email --name \"Name\" --email \"you@example.com\" --body \"Message\"",
       }),
       createFileSystemNode("email", "file", "/contact/email", undefined, {
         type: "email_composer",

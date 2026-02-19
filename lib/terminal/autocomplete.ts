@@ -147,40 +147,6 @@ function getCommandCompletions(prefix: string): string[] {
 }
 
 /**
- * Recursively searches for files and directories matching a prefix
- */
-function searchFileSystem(
-  node: FileSystemNode,
-  prefix: string,
-  currentPath: string,
-  matches: Array<{ name: string; path: string; type: "file" | "directory" }>
-): void {
-  const lowerPrefix = prefix.toLowerCase();
-
-  // Search children
-  if (node.children) {
-    for (const child of node.children) {
-      const childPath = currentPath === "/" 
-        ? `/${child.name}` 
-        : `${currentPath}/${child.name}`;
-      
-      if (child.name.toLowerCase().startsWith(lowerPrefix)) {
-        matches.push({ 
-          name: child.name, 
-          path: childPath, 
-          type: child.type 
-        });
-      }
-
-      // Recursively search subdirectories
-      if (child.type === "directory" && child.children) {
-        searchFileSystem(child, prefix, childPath, matches);
-      }
-    }
-  }
-}
-
-/**
  * Recursively collects all links from filesystem nodes within a directory
  */
 function collectAllLinks(
@@ -344,54 +310,30 @@ function getPathCompletions(
   context: TerminalContext,
   commandName?: string
 ): CompletionResult {
-  // For open command, also check links and mode hrefs
+  // For open command, also complete URLs and mode hrefs
   if (commandName === "open") {
-    // If prefix is empty, show all links and files in current directory
-    if (prefix === "") {
-      const linkCompletions = getAllLinkCompletions("", context.currentDirectory);
-      const pathCompletions = getPathCompletionsInternal("", context);
-      
-      // Merge link and path completions
-      const allCompletions = [
-        ...linkCompletions.completions,
-        ...pathCompletions.completions,
-      ];
-      
-      if (allCompletions.length > 0) {
-        const commonPrefix = findLongestCommonPrefix(allCompletions);
-        return {
-          completions: [...new Set(allCompletions)].sort(),
-          commonPrefix,
-          isDirectory: pathCompletions.isDirectory,
-        };
-      }
-      return { completions: [], commonPrefix: "" };
-    }
-    
-    // If it's a full URL or looks like a URL, try to complete all links in current directory
-    if (prefix.startsWith("http://") || prefix.startsWith("https://") || prefix.includes(".")) {
+    // URL prefix — complete against known links (matches "http", "https:", "https://...", "foo.com")
+    if (prefix.startsWith("http") || prefix.includes(".")) {
       const linkCompletions = getAllLinkCompletions(prefix, context.currentDirectory);
       if (linkCompletions.completions.length > 0) {
         return linkCompletions;
       }
-      // Fall back to mode hrefs for URLs (only if in root directory)
       if (context.currentDirectory === "/") {
         return getModeHrefCompletions(prefix);
       }
       return { completions: [], commonPrefix: "" };
     }
-    
-    // Always check mode hrefs for open command when prefix starts with / (only in root)
+
+    // Slash prefix in root — merge mode hrefs with filesystem paths
     if (prefix.startsWith("/") && context.currentDirectory === "/") {
       const modeCompletions = getModeHrefCompletions(prefix);
       const pathCompletions = getPathCompletionsInternal(prefix, context);
-      
-      // Merge mode and path completions
+
       const allCompletions = [
         ...modeCompletions.completions,
         ...pathCompletions.completions,
       ];
-      
+
       if (allCompletions.length > 0) {
         const commonPrefix = findLongestCommonPrefix(allCompletions);
         return {
@@ -400,41 +342,10 @@ function getPathCompletions(
           isDirectory: pathCompletions.isDirectory,
         };
       }
-      
-      // If no completions at all, return empty
       return { completions: [], commonPrefix: "" };
     }
-    
-    // Check for link completions by name in current directory (e.g., "signal" matches "Signal Deck" project link)
-    const linkCompletions = getAllLinkCompletions(prefix, context.currentDirectory);
-    if (linkCompletions.completions.length > 0) {
-      // Also merge with path completions
-      const pathCompletions = getPathCompletionsInternal(prefix, context);
-      const allCompletions = [
-        ...linkCompletions.completions,
-        ...pathCompletions.completions,
-      ];
-      
-      if (allCompletions.length > 0) {
-        const commonPrefix = findLongestCommonPrefix(allCompletions);
-        return {
-          completions: [...new Set(allCompletions)].sort(),
-          commonPrefix,
-          isDirectory: pathCompletions.isDirectory,
-        };
-      }
-    }
-    
-    // Also check mode hrefs for non-slash prefixes (like "term" should match "/terminal")
-    // But only if no path matches are found and we're in root directory
-    const pathCompletions = getPathCompletionsInternal(prefix, context);
-    if (pathCompletions.completions.length === 0 && context.currentDirectory === "/") {
-      // Try mode hrefs - check if any href's path part (without leading /) matches
-      const modeCompletions = getModeHrefCompletions(`/${prefix}`);
-      if (modeCompletions.completions.length > 0) {
-        return modeCompletions;
-      }
-    }
+
+    // Plain word — only complete filesystem paths (no link URLs)
   }
   
   return getPathCompletionsInternal(prefix, context);
@@ -478,14 +389,19 @@ function getPathCompletionsInternal(
     const parts = prefix.split("/").filter(Boolean);
     if (parts.length > 0) {
       searchPrefix = parts.pop() || "";
-      const dirPath = resolveAbsolutePath(
-        context.currentDirectory,
-        parts.join("/")
-      );
-      if (pathExists(fs, dirPath)) {
-        const node = getNode(fs, dirPath);
-        if (node?.type === "directory") {
-          searchDir = dirPath;
+      // Only resolve a subdirectory if there are remaining path components
+      // e.g. "sub/inf" → resolve "sub" relative to cwd, search for "inf"
+      // But "inf" alone → just search in cwd (searchDir already set to basePath)
+      if (parts.length > 0) {
+        const dirPath = resolveAbsolutePath(
+          context.currentDirectory,
+          parts.join("/")
+        );
+        if (pathExists(fs, dirPath)) {
+          const node = getNode(fs, dirPath);
+          if (node?.type === "directory") {
+            searchDir = dirPath;
+          }
         }
       }
     }
@@ -494,41 +410,6 @@ function getPathCompletionsInternal(
   // List directory contents
   const contents = listDirectory(fs, searchDir);
   if (!contents) {
-    // If prefix is empty, don't do recursive search - just return empty
-    // (empty prefix means list current directory, which has no contents)
-    if (searchPrefix === "" || prefix === "") {
-      return { completions: [], commonPrefix: "" };
-    }
-    
-    // If no contents in current directory, try searching recursively
-    // But only if we have a non-empty prefix (not listing current directory)
-    if (searchPrefix && !prefix.includes("/")) {
-      const allMatches: Array<{ name: string; path: string; type: "file" | "directory" }> = [];
-      searchFileSystem(fs.root, searchPrefix, "/", allMatches);
-      
-      if (allMatches.length > 0) {
-        // Return relative paths from current directory
-        const relativeMatches = allMatches.map(m => {
-          if (m.path.startsWith(context.currentDirectory + "/")) {
-            return m.path.substring(context.currentDirectory.length + 1);
-          } else if (context.currentDirectory === "/") {
-            return m.path.substring(1);
-          } else {
-            return m.path;
-          }
-        });
-        
-        const commonPrefix = findLongestCommonPrefix(relativeMatches);
-        const isDirectory = relativeMatches.length === 1 && 
-          allMatches[0].type === "directory";
-        
-        return {
-          completions: relativeMatches.sort(),
-          commonPrefix,
-          isDirectory,
-        };
-      }
-    }
     return { completions: [], commonPrefix: "" };
   }
 
@@ -543,37 +424,6 @@ function getPathCompletionsInternal(
       if (item.type === "directory") {
         directoryMatches.push(item.name);
       }
-    }
-  }
-
-  // If no matches in current directory and we're searching for a simple name (no slashes),
-  // try recursive search
-  // BUT: Don't do recursive search if prefix is empty (we're listing current directory)
-  if (matches.length === 0 && searchPrefix && !prefix.includes("/") && prefix !== "") {
-    const allMatches: Array<{ name: string; path: string; type: "file" | "directory" }> = [];
-    searchFileSystem(fs.root, searchPrefix, "/", allMatches);
-    
-    if (allMatches.length > 0) {
-      // Return relative paths from current directory
-      const relativeMatches = allMatches.map(m => {
-        if (m.path.startsWith(context.currentDirectory + "/")) {
-          return m.path.substring(context.currentDirectory.length + 1);
-        } else if (context.currentDirectory === "/") {
-          return m.path.substring(1);
-        } else {
-          return m.path;
-        }
-      });
-      
-      const commonPrefix = findLongestCommonPrefix(relativeMatches);
-      const isDirectory = relativeMatches.length === 1 && 
-        allMatches[0].type === "directory";
-      
-      return {
-        completions: relativeMatches.sort(),
-        commonPrefix,
-        isDirectory,
-      };
     }
   }
 
