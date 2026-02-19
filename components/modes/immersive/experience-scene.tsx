@@ -377,7 +377,7 @@ function PlanetSystem({
                   {showBillboards && (
                     <SpaceBillboard
                       planetId={sub.id}
-                      sectionKey={planet.sectionKey as "capabilities" | "projects" | "labNotes" | "modes"}
+                      sectionKey={planet.sectionKey as "capabilities" | "projects" | "howIWork" | "modes"}
                       sectionIndex={sub.sectionIndex}
                       position={[
                         worldPos[0],

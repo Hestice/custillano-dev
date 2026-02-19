@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type { KeyboardState } from "./types";
+import { touchInput } from "./touch-input";
 
 export function useKeyboardControls() {
   const [keys, setKeys] = useState<KeyboardState>({});
@@ -46,6 +47,10 @@ export function useCharacterControls() {
       direction.x += 1;
     }
 
+    // Merge touch joystick input
+    direction.x += touchInput.x;
+    direction.z += touchInput.z;
+
     const magnitude = Math.sqrt(direction.x ** 2 + direction.z ** 2);
     if (magnitude > 0) {
       direction.x /= magnitude;
@@ -58,6 +63,6 @@ export function useCharacterControls() {
   return {
     keys,
     getMovementDirection,
-    isMoving: (keys["w"] || keys["W"] || keys["s"] || keys["S"] || keys["a"] || keys["A"] || keys["d"] || keys["D"]),
+    isMoving: (keys["w"] || keys["W"] || keys["s"] || keys["S"] || keys["a"] || keys["A"] || keys["d"] || keys["D"] || touchInput.x !== 0 || touchInput.z !== 0),
   };
 }

@@ -146,6 +146,23 @@ export function createFileSystem(): FileSystem {
       capabilities
     ),
     createFileSystemNode("modes", "directory", "/modes", modes),
+    createFileSystemNode(
+      "how-i-work",
+      "directory",
+      "/how-i-work",
+      siteConfig.howIWork.map((pillar) =>
+        createFileSystemNode(
+          pillar.title.toLowerCase().replace(/[\s&]+/g, "-"),
+          "file",
+          `/how-i-work/${pillar.title.toLowerCase().replace(/[\s&]+/g, "-")}`,
+          undefined,
+          {
+            title: pillar.title,
+            description: pillar.copy,
+          }
+        )
+      )
+    ),
   ]);
 
   return { root };
