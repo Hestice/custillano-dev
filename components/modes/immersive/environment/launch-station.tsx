@@ -12,16 +12,37 @@ interface TreeData {
   canopyHeight: number;
 }
 
+// Exclusion zones where trees must not spawn (center x, center z, radius)
+const TREE_EXCLUSION_ZONES: [number, number, number][] = [
+  [0, 0, 5],       // Launch pad area
+  [4, -3, 3],      // Station building
+  [-2.5, 0, 2],    // Gantry tower
+];
+
+function isInExclusionZone(x: number, z: number): boolean {
+  for (const [cx, cz, r] of TREE_EXCLUSION_ZONES) {
+    const dx = x - cx;
+    const dz = z - cz;
+    if (dx * dx + dz * dz < r * r) return true;
+  }
+  return false;
+}
+
 function Trees() {
   const trees = useMemo<TreeData[]>(() => {
     const result: TreeData[] = [];
-    for (let i = 0; i < STATION.treeCount; i++) {
+    let attempts = 0;
+    while (result.length < STATION.treeCount && attempts < 200) {
+      attempts++;
       const angle = Math.random() * Math.PI * 2;
       const dist =
         STATION.treeAreaMin +
         Math.random() * (STATION.treeAreaMax - STATION.treeAreaMin);
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
+
+      if (isInExclusionZone(x, z)) continue;
+
       const scale = 0.7 + Math.random() * 0.6;
       const trunkHeight = (1.5 + Math.random() * 1.0) * scale;
       const canopyRadius = (0.8 + Math.random() * 0.4) * scale;
@@ -64,27 +85,51 @@ function Trees() {
 }
 
 function LaunchPad() {
+  const groundY = -2;
+  const platformTopY = -1.4;
+  const platformHeight = platformTopY - groundY;
+
   return (
     <group>
-      {/* Concrete pad */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.98, 0]}>
-        <circleGeometry args={[STATION.padRadius, 32]} />
-        <meshStandardMaterial color={STATION.padColor} roughness={0.95} />
+      {/* Raised launch pedestal — rocket sits on this */}
+      <mesh position={[0, groundY + platformHeight / 2, 0]}>
+        <cylinderGeometry args={[0.9, 1.1, platformHeight, 16]} />
+        <meshStandardMaterial color="#555555" roughness={0.8} metalness={0.2} />
       </mesh>
-      {/* Yellow safety ring marking */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.97, 0]}>
-        <ringGeometry args={[2.5, 3.0, 32]} />
+      {/* Pedestal top cap */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, platformTopY + 0.02, 0]}>
+        <circleGeometry args={[1.0, 16]} />
+        <meshStandardMaterial color="#777777" roughness={0.6} metalness={0.2} />
+      </mesh>
+      {/* Cross markings on pedestal top */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, platformTopY + 0.04, 0]}>
+        <planeGeometry args={[0.12, 1.6]} />
         <meshStandardMaterial color={STATION.padMarkingColor} roughness={0.7} />
       </mesh>
-      {/* Cross markings */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.96, 0]}>
-        <planeGeometry args={[0.2, 4]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, platformTopY + 0.04, 0]}>
+        <planeGeometry args={[1.6, 0.12]} />
         <meshStandardMaterial color={STATION.padMarkingColor} roughness={0.7} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.96, 0]}>
-        <planeGeometry args={[4, 0.2]} />
-        <meshStandardMaterial color={STATION.padMarkingColor} roughness={0.7} />
-      </mesh>
+
+      {/* Support legs */}
+      {[0, Math.PI / 2, Math.PI, Math.PI * 1.5].map((angle, i) => (
+        <mesh
+          key={i}
+          position={[
+            Math.cos(angle) * 1.3,
+            groundY + platformHeight * 0.35,
+            Math.sin(angle) * 1.3,
+          ]}
+          rotation={[
+            Math.sin(angle) * 0.15,
+            0,
+            -Math.cos(angle) * 0.15,
+          ]}
+        >
+          <boxGeometry args={[0.08, platformHeight * 0.8, 0.08]} />
+          <meshStandardMaterial color={STATION.buildingAccent} roughness={0.6} metalness={0.3} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -121,22 +166,90 @@ function StationBuilding() {
 
 function GantryTower() {
   return (
-    <group position={[-2, 1, 0]}>
+    <group position={[-2.5, -0.5, 0]}>
       {/* Vertical tower */}
       <mesh>
-        <boxGeometry args={[0.4, 6, 0.4]} />
+        <boxGeometry args={[0.15, 3, 0.15]} />
         <meshStandardMaterial color={STATION.buildingAccent} roughness={0.6} metalness={0.3} />
       </mesh>
-      {/* Horizontal arm extending toward rocket */}
-      <mesh position={[1, 2, 0]}>
-        <boxGeometry args={[2, 0.2, 0.2]} />
+      {/* Cross braces */}
+      <mesh position={[0.08, 0.3, 0.08]}>
+        <boxGeometry args={[0.06, 1.2, 0.06]} />
+        <meshStandardMaterial color={STATION.buildingAccent} roughness={0.6} metalness={0.3} />
+      </mesh>
+      <mesh position={[-0.08, -0.4, -0.08]}>
+        <boxGeometry args={[0.06, 1.2, 0.06]} />
+        <meshStandardMaterial color={STATION.buildingAccent} roughness={0.6} metalness={0.3} />
+      </mesh>
+      {/* Horizontal arm — stops short of rocket with a gap */}
+      <mesh position={[0.6, 0.8, 0]}>
+        <boxGeometry args={[1.0, 0.1, 0.1]} />
         <meshStandardMaterial color={STATION.buildingAccent} roughness={0.6} metalness={0.3} />
       </mesh>
       {/* Base */}
-      <mesh position={[0, -2.8, 0]}>
-        <boxGeometry args={[0.8, 0.4, 0.8]} />
+      <mesh position={[0, -1.3, 0]}>
+        <boxGeometry args={[0.5, 0.3, 0.5]} />
         <meshStandardMaterial color={STATION.buildingColor} roughness={0.8} />
       </mesh>
+    </group>
+  );
+}
+
+function Fence() {
+  const groundY = -2;
+  const postHeight = 1.2;
+  const railHeight1 = groundY + postHeight * 0.45;
+  const railHeight2 = groundY + postHeight * 0.85;
+  const radius = 7.5;
+  const postCount = 16;
+
+  const posts = useMemo(() => {
+    const result: [number, number, number][] = [];
+    for (let i = 0; i < postCount; i++) {
+      const angle = (i / postCount) * Math.PI * 2;
+      result.push([
+        Math.cos(angle) * radius,
+        groundY + postHeight / 2,
+        Math.sin(angle) * radius,
+      ]);
+    }
+    return result;
+  }, []);
+
+  const rails = useMemo(() => {
+    const result: { position: [number, number, number]; rotation: [number, number, number]; length: number }[] = [];
+    for (let i = 0; i < postCount; i++) {
+      const a1 = (i / postCount) * Math.PI * 2;
+      const a2 = ((i + 1) / postCount) * Math.PI * 2;
+      const midAngle = (a1 + a2) / 2;
+      const mx = Math.cos(midAngle) * radius;
+      const mz = Math.sin(midAngle) * radius;
+      const segLen = 2 * radius * Math.sin(Math.PI / postCount);
+
+      result.push(
+        { position: [mx, railHeight1, mz], rotation: [0, -midAngle + Math.PI / 2, 0], length: segLen },
+        { position: [mx, railHeight2, mz], rotation: [0, -midAngle + Math.PI / 2, 0], length: segLen },
+      );
+    }
+    return result;
+  }, []);
+
+  return (
+    <group>
+      {/* Posts */}
+      {posts.map((pos, i) => (
+        <mesh key={`post-${i}`} position={pos}>
+          <boxGeometry args={[0.08, postHeight, 0.08]} />
+          <meshStandardMaterial color="#8B7355" roughness={0.9} />
+        </mesh>
+      ))}
+      {/* Rails */}
+      {rails.map((rail, i) => (
+        <mesh key={`rail-${i}`} position={rail.position} rotation={rail.rotation}>
+          <boxGeometry args={[rail.length, 0.05, 0.05]} />
+          <meshStandardMaterial color="#8B7355" roughness={0.9} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -148,9 +261,11 @@ export function LaunchStation() {
       <Trees />
       <StationBuilding />
       <GantryTower />
+      <Fence />
 
       {/* Warm daytime lighting */}
-      <pointLight position={[5, 8, 5]} intensity={1.5} color="#fff5e6" distance={40} />
+      <pointLight position={[5, 8, 5]} intensity={2.5} color="#fff5e6" distance={50} />
+      <pointLight position={[-3, 6, 3]} intensity={1.0} color="#ffe8cc" distance={30} />
     </group>
   );
 }

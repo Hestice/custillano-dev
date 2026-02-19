@@ -67,15 +67,15 @@ export const EARTH = {
   emissive: "#0d3d6b",
 };
 
-// Planetary atmosphere (grounded feel — warm daytime)
+// Planetary atmosphere (grounded feel — warm golden-hour)
 export const ATMOSPHERE = {
-  fogColor: "#c8e6f0",
-  fogNear: 10,
-  fogFarStart: 60,
+  fogColor: "#e8d5c4",
+  fogNear: 15,
+  fogFarStart: 80,
   fogFarEnd: 1000,
-  skyColor: "#87ceeb",
+  skyColor: "#f0c27f",
   skyDomeRadius: 80,
-  skyOpacityStart: 0.9,
+  skyOpacityStart: 0.7,
 };
 
 // Launch station ground scene
@@ -86,7 +86,7 @@ export const STATION = {
   padColor: "#666666",
   padMarkingColor: "#ffcc00",
   treeCount: 20,
-  treeAreaMin: 6,
+  treeAreaMin: 8,
   treeAreaMax: 15,
   treeTrunkColor: "#5c3a1e",
   treeCanopyColors: ["#2d5a1e", "#3a6b2a", "#4a7c36"],

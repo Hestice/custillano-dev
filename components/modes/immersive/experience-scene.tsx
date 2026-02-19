@@ -287,13 +287,13 @@ export function ExperienceScene() {
       <CameraController characterRef={characterRef} />
 
       {/* Space lighting */}
-      <ambientLight intensity={0.15} />
+      <ambientLight intensity={0.4} />
       <directionalLight
         position={[100, 80, 50]}
-        intensity={0.8}
+        intensity={1.2}
         color="#fff5e6"
       />
-      <pointLight position={[0, 50, -200]} intensity={0.4} color="#4a9eff" distance={500} />
+      <pointLight position={[0, 50, -200]} intensity={0.5} color="#4a9eff" distance={500} />
 
       <SpaceEnvironment />
       <AtmosphereEffect characterRef={characterRef} />

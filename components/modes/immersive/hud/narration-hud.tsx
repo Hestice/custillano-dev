@@ -63,7 +63,7 @@ export function NarrationHud() {
   if (!isVisible) return null;
 
   return (
-    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+    <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
       <div
         className="px-6 py-3 rounded-lg max-w-lg text-center"
         style={{

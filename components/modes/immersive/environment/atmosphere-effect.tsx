@@ -39,7 +39,7 @@ export function AtmosphereEffect({ characterRef }: AtmosphereEffectProps) {
     const progress = characterRef.current?.launchProgress ?? 0;
 
     if (phase === "grounded") {
-      // Dense atmosphere — hide stars and distant objects
+      // Warm, inviting atmosphere — soft fog that doesn't obscure the station
       if (scene.fog instanceof Fog) {
         scene.fog.far = ATMOSPHERE.fogFarStart;
       }
@@ -50,21 +50,19 @@ export function AtmosphereEffect({ characterRef }: AtmosphereEffectProps) {
       }
     } else if (phase === "lifting") {
       const t = Math.min(progress, 1);
-      // Use smoothstep for natural-feeling transitions
       const eased = smoothstep(t);
 
-      // Fog recedes with easing — slow start, then accelerates
+      // Fog recedes as we leave the planet
       if (scene.fog instanceof Fog) {
         scene.fog.far = ATMOSPHERE.fogFarStart + (ATMOSPHERE.fogFarEnd - ATMOSPHERE.fogFarStart) * eased;
       }
 
-      // Background gradually fades from atmosphere color to black
+      // Background transitions from warm atmosphere to black space
       lerpedBg.current.copy(bgColor.current).lerp(blackColor.current, eased);
       scene.background = lerpedBg.current;
 
-      // Sky dome fades out with easing — stays visible longer, then fades quickly
+      // Sky dome fades out — stays visible a bit longer, then drops off
       if (skyRef.current) {
-        // Delay the fade: don't start fading until t > 0.2, then smooth out
         const skyT = Math.max(0, (t - 0.2) / 0.8);
         const skyEased = smoothstep(skyT);
         (skyRef.current.material as MeshBasicMaterial).opacity =

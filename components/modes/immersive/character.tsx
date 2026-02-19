@@ -781,10 +781,11 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
 
   const showFlyingEffects = isMoving && launchPhaseRef.current === "flying";
   const showLaunchEffects = launchPhaseRef.current === "lifting";
+  const showTrail = launchPhaseRef.current !== "grounded";
 
   return (
     <>
-      <Trail getPosition={() => position.current} />
+      {showTrail && <Trail getPosition={() => position.current} />}
       <group ref={groupRef} position={[0, 1, 0]}>
         <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.4, 0.6, 8]} />

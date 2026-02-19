@@ -41,7 +41,7 @@ function LaunchOverlay() {
   if (state.phase !== "intro") return null;
 
   return (
-    <div className="absolute inset-0 z-30 flex items-end justify-center pb-40 pointer-events-none">
+    <div className="absolute inset-0 z-30 flex items-end justify-center pb-20 pointer-events-none">
       {showPrompt && (
         <button
           onClick={handleLaunch}
