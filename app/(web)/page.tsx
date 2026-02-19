@@ -24,7 +24,7 @@ import {
 import { EmailComposer } from "@/components/shared/email-composer";
 import { siteConfig } from "@/config/site";
 import type { IconKey, ModeKey } from "@/config/site";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+
 
 const iconMap: Record<IconKey, LucideIcon> = {
   layers: Layers,
@@ -47,9 +47,6 @@ export default function WebModeLanding() {
   return (
     <div className="bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-16 px-6 py-16 md:py-20 lg:px-8">
-        <div className="flex items-center justify-end">
-          <ThemeToggle />
-        </div>
         <Hero hero={hero} focusAreas={info.focusAreas} />
         <Capabilities capabilities={capabilities} />
         <Projects projects={projects} />

@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { ExperienceScene } from "@/components/modes/immersive/experience-scene";
 import { StoryProvider, useStory } from "@/components/modes/immersive/state/story-context";
 import { NarrationHud } from "@/components/modes/immersive/hud/narration-hud";
 import { ProgressHud } from "@/components/modes/immersive/hud/progress-hud";
 import { NARRATION } from "@/components/modes/immersive/state/story-data";
 import { BLACK_HOLE } from "@/lib/three/constants";
+import { TouchControls } from "@/components/modes/immersive/touch/touch-controls";
+import { useTouchDevice } from "@/lib/hooks/use-touch-device";
 
 function LaunchOverlay() {
   const { state, dispatch } = useStory();
@@ -52,7 +54,7 @@ function LaunchOverlay() {
             border: "1px solid rgba(100,200,255,0.3)",
           }}
         >
-          Press SPACE to launch
+          Tap to launch
         </button>
       )}
     </div>
@@ -113,23 +115,71 @@ function AbsorptionOverlay() {
 
 function ExperienceControls() {
   const { state, isPlanetUnlocked } = useStory();
+  const isTouch = useTouchDevice();
+  const [collapsed, setCollapsed] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-collapse after 4s on touch devices
+  useEffect(() => {
+    if (!isTouch) return;
+    timerRef.current = setTimeout(() => setCollapsed(true), 4000);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [isTouch]);
 
   if (state.phase === "intro" || state.phase === "launching") return null;
 
   const tutorialComplete = isPlanetUnlocked("tutorial");
 
-  return (
-    <div className="absolute top-4 left-4 z-10 text-white bg-black/50 p-4 rounded">
-      <p className="text-sm font-mono">WASD to move</p>
-      <p
-        className={`text-xs font-mono mt-1 ${
-          tutorialComplete ? "text-white/50" : "text-cyan-400/80"
-        }`}
+  const handleToggle = (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    setCollapsed((prev) => !prev);
+  };
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={handleToggle}
+        className="absolute top-4 left-4 z-10 flex h-9 w-9 items-center justify-center rounded-full text-white/70 active:bg-white/10 cursor-pointer"
+        style={{
+          background: "rgba(0,0,0,0.6)",
+          border: "1px solid rgba(100,150,255,0.15)",
+        }}
+        aria-label="Show controls guide"
       >
-        {tutorialComplete
-          ? "Collect signals to decode planet transmissions"
-          : "Fly toward the Signal Primer ahead"}
-      </p>
+        <span className="text-sm font-mono">?</span>
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="absolute top-4 left-4 z-10 text-white rounded cursor-pointer"
+      style={{
+        background: "rgba(0,0,0,0.5)",
+      }}
+      onClick={handleToggle}
+    >
+      <div className="p-4">
+        <p className="text-sm font-mono">
+          {isTouch ? "Drag joystick to move" : "WASD to move"}
+        </p>
+        <p
+          className={`text-xs font-mono mt-1 ${
+            tutorialComplete ? "text-white/50" : "text-cyan-400/80"
+          }`}
+        >
+          {tutorialComplete
+            ? "Collect signals to decode planet transmissions"
+            : "Fly toward the Signal Primer ahead"}
+        </p>
+        {isTouch && (
+          <p className="text-[10px] font-mono mt-2 text-white/30">
+            Tap to dismiss
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -143,6 +193,7 @@ export default function ExperiencePage() {
         <NarrationHud />
         <ProgressHud />
         <ExperienceControls />
+        <TouchControls />
         <AbsorptionOverlay />
       </div>
     </StoryProvider>

@@ -444,11 +444,11 @@ export function Terminal() {
     <div
       ref={containerRef}
       className={cn(
-        "h-screen w-full bg-background text-foreground",
-        "overflow-y-auto p-6",
-        "select-none"
+        "h-dvh w-full bg-background text-foreground",
+        "overflow-y-auto overscroll-contain p-4 md:p-6",
+        "select-none terminal-cursor-hide"
       )}
-      style={{ cursor: "none", pointerEvents: "auto" }}
+      style={{ pointerEvents: "auto" }}
     >
       <div className="max-w-4xl mx-auto space-y-4">
         <TerminalOutput history={history} />

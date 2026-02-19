@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function TerminalPage() {
   return (
-    <div className="h-screen w-screen overflow-hidden bg-background">
+    <div className="h-dvh w-screen overflow-hidden bg-background">
       <Terminal />
     </div>
   );

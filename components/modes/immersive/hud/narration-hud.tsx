@@ -63,9 +63,9 @@ export function NarrationHud() {
   if (!isVisible) return null;
 
   return (
-    <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+    <div className="absolute top-16 md:top-auto md:bottom-40 left-1/2 -translate-x-1/2 z-20 pointer-events-none w-[calc(100%-2rem)] md:w-auto">
       <div
-        className="px-6 py-3 rounded-lg max-w-lg text-center"
+        className="px-4 py-2 md:px-6 md:py-3 rounded-lg max-w-lg mx-auto text-center"
         style={{
           background:
             "linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(10,10,30,0.9) 100%)",
@@ -73,7 +73,7 @@ export function NarrationHud() {
           boxShadow: "0 0 30px rgba(100,150,255,0.1)",
         }}
       >
-        <p className="text-white/90 text-sm font-mono leading-relaxed">
+        <p className="text-white/90 text-xs md:text-sm font-mono leading-relaxed">
           {displayedText}
           <span className="animate-pulse ml-0.5 text-blue-400">|</span>
         </p>
