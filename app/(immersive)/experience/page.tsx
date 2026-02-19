@@ -9,18 +9,23 @@ import { NARRATION } from "@/components/modes/immersive/state/story-data";
 import { BLACK_HOLE } from "@/lib/three/constants";
 import { TouchControls } from "@/components/modes/immersive/touch/touch-controls";
 import { useTouchDevice } from "@/lib/hooks/use-touch-device";
+import { useUserName } from "@/providers/user/user-provider";
 
 function LaunchOverlay() {
   const { state, dispatch } = useStory();
+  const { name } = useUserName();
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
     if (state.phase === "intro") {
-      dispatch({ type: "SET_NARRATION", text: NARRATION.intro });
+      const intro = name
+        ? `Welcome back, ${name}. I'm Marcus — product designer and creative technologist. Explore this universe to discover my work.`
+        : NARRATION.intro;
+      dispatch({ type: "SET_NARRATION", text: intro });
       const timer = setTimeout(() => setShowPrompt(true), 4000);
       return () => clearTimeout(timer);
     }
-  }, [state.phase, dispatch]);
+  }, [state.phase, dispatch, name]);
 
   const handleLaunch = useCallback(() => {
     dispatch({ type: "LAUNCH" });

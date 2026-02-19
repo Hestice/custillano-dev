@@ -22,6 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmailComposer } from "@/components/shared/email-composer";
+import { PersonalizedGreeting } from "@/components/shared/personalized-greeting";
 import { siteConfig } from "@/config/site";
 import type { IconKey, ModeKey } from "@/config/site";
 
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
 };
 
 export default function WebModeLanding() {
-  const { hero, capabilities, modes, labNotes, contact, info, projects } =
+  const { hero, capabilities, modes, howIWork, contact, info, projects } =
     siteConfig;
 
   return (
@@ -51,7 +52,7 @@ export default function WebModeLanding() {
         <Capabilities capabilities={capabilities} />
         <Projects projects={projects} />
         <Modes modes={modes} />
-        <Lab notes={labNotes} />
+        <HowIWork pillars={howIWork} />
         <Contact contact={contact} />
       </div>
     </div>
@@ -78,9 +79,7 @@ function Hero({
           <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">
             {focusAreas.join(" · ")}
           </p>
-          <h1 className="text-balance text-4xl font-semibold leading-snug text-foreground sm:text-5xl">
-            {hero.headline}
-          </h1>
+          <PersonalizedGreeting fallback={hero.headline} />
           <p className="text-lg text-muted-foreground sm:text-xl">
             {hero.copy}
           </p>
@@ -222,25 +221,25 @@ function Modes({ modes }: { modes: typeof siteConfig.modes }) {
   );
 }
 
-function Lab({ notes }: { notes: typeof siteConfig.labNotes }) {
+function HowIWork({ pillars }: { pillars: typeof siteConfig.howIWork }) {
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-3">
-        <h2 className="text-2xl font-semibold">Lab notes</h2>
+        <h2 className="text-2xl font-semibold">How I work</h2>
         <p className="text-muted-foreground">
-          Quick snapshots of what is being prototyped behind the scenes.
+          The principles behind every project I take on.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        {notes.map((note) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {pillars.map((pillar) => (
           <div
-            key={note.title}
-            className="rounded-2xl border border-dashed border-border/70 p-6"
+            key={pillar.title}
+            className="rounded-2xl border border-border/70 p-6"
           >
-            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">
-              {note.title}
+            <p className="text-sm font-medium uppercase tracking-[0.3em] text-muted-foreground">
+              {pillar.title}
             </p>
-            <p className="mt-3 text-sm text-foreground">{note.copy}</p>
+            <p className="mt-3 text-sm text-foreground">{pillar.copy}</p>
           </div>
         ))}
       </div>

@@ -7,7 +7,7 @@ type SectionType =
   | "tutorial"
   | "capabilities"
   | "projects"
-  | "labNotes"
+  | "howIWork"
   | "modes"
   | "contact";
 
@@ -89,13 +89,13 @@ export function BillboardContent({
     );
   }
 
-  if (sectionKey === "labNotes" && sectionIndex !== undefined) {
-    const note = siteConfig.labNotes[sectionIndex];
-    if (!note) return null;
+  if (sectionKey === "howIWork" && sectionIndex !== undefined) {
+    const pillar = siteConfig.howIWork[sectionIndex];
+    if (!pillar) return null;
     return (
       <div className="w-[240px] p-4 text-white">
-        <h3 className="text-sm font-bold mb-2">{note.title}</h3>
-        <p className="text-[11px] opacity-80 leading-relaxed">{note.copy}</p>
+        <h3 className="text-sm font-bold mb-2">{pillar.title}</h3>
+        <p className="text-[11px] opacity-80 leading-relaxed">{pillar.copy}</p>
       </div>
     );
   }
