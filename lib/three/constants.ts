@@ -53,6 +53,10 @@ export const LAUNCH = {
     liftOffsetZ: 18,
     liftLerp: 0.04,
   },
+  planet: {
+    groundedScale: 5,
+    flyingScale: 1,
+  },
 };
 
 // Earth palette
@@ -63,13 +67,30 @@ export const EARTH = {
   emissive: "#0d3d6b",
 };
 
-// Planetary atmosphere (grounded feel)
+// Planetary atmosphere (grounded feel — warm daytime)
 export const ATMOSPHERE = {
-  fogColor: "#a8d8ea",
+  fogColor: "#c8e6f0",
   fogNear: 10,
   fogFarStart: 60,
   fogFarEnd: 1000,
-  skyColor: "#6fb8e0",
+  skyColor: "#87ceeb",
   skyDomeRadius: 80,
-  skyOpacityStart: 0.85,
+  skyOpacityStart: 0.9,
+};
+
+// Launch station ground scene
+export const STATION = {
+  groundRadius: 30,
+  groundColor: "#4a7c59",
+  padRadius: 3.5,
+  padColor: "#666666",
+  padMarkingColor: "#ffcc00",
+  treeCount: 20,
+  treeAreaMin: 6,
+  treeAreaMax: 15,
+  treeTrunkColor: "#5c3a1e",
+  treeCanopyColors: ["#2d5a1e", "#3a6b2a", "#4a7c36"],
+  buildingColor: "#555555",
+  buildingAccent: "#333333",
+  infoBoardColor: "#1a1a2e",
 };

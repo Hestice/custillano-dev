@@ -2,9 +2,11 @@
 
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { CanvasTexture } from "three";
+import { CanvasTexture, MathUtils } from "three";
 import type { Mesh, Group } from "three";
-import { EARTH } from "@/lib/three/constants";
+import { EARTH, LAUNCH, STATION } from "@/lib/three/constants";
+import type { CharacterRef } from "../character";
+import { LaunchStation } from "../environment/launch-station";
 
 function createEarthTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
@@ -64,7 +66,23 @@ function createEarthTexture(): CanvasTexture {
   return texture;
 }
 
-export function HomePlanet() {
+const SPHERE_RADIUS = 8;
+const SURFACE_Y = -2;
+// Ground disc local radius — slightly less than sphere so it doesn't poke out at scale=1
+const GROUND_CAP_RADIUS = 7.9;
+
+function computePlanetY(scale: number) {
+  return SURFACE_Y - SPHERE_RADIUS * scale;
+}
+
+export function HomePlanet({
+  characterRef,
+}: {
+  characterRef: React.RefObject<CharacterRef | null>;
+}) {
+  const groupRef = useRef<Group>(null);
+  const stationScaleRef = useRef<Group>(null);
+  const groundDiscRef = useRef<Mesh>(null);
   const meshRef = useRef<Mesh>(null);
   const cloudRef = useRef<Mesh>(null);
   const ringRef = useRef<Group>(null);
@@ -77,11 +95,52 @@ export function HomePlanet() {
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
+
+    // Animate planet scale based on launch phase
+    if (groupRef.current && characterRef.current) {
+      const { launchPhase, launchProgress } = characterRef.current;
+      const grounded = LAUNCH.planet.groundedScale;
+      const flying = LAUNCH.planet.flyingScale;
+
+      let scale: number;
+      let stationFade: number;
+
+      if (launchPhase === "grounded") {
+        scale = grounded;
+        stationFade = 1;
+      } else if (launchPhase === "lifting") {
+        const scaleStart = LAUNCH.ignitionEnd;
+        const scaleEnd = LAUNCH.ascentEnd;
+        const t = MathUtils.clamp(
+          (launchProgress - scaleStart) / (scaleEnd - scaleStart),
+          0,
+          1
+        );
+        const smooth = t * t * (3 - 2 * t);
+        scale = MathUtils.lerp(grounded, flying, smooth);
+        stationFade = 1 - smooth;
+      } else {
+        scale = flying;
+        stationFade = 0;
+      }
+
+      groupRef.current.scale.setScalar(scale);
+      groupRef.current.position.y = computePlanetY(scale);
+
+      // Shrink station + ground disc out of existence during launch
+      if (stationScaleRef.current) {
+        const counterScale = stationFade > 0 ? (1 / scale) * stationFade : 0;
+        stationScaleRef.current.scale.setScalar(counterScale);
+      }
+      if (groundDiscRef.current) {
+        groundDiscRef.current.scale.setScalar(stationFade);
+      }
+    }
+
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.03 * 0.016;
     }
     if (cloudRef.current) {
-      // Clouds rotate slightly faster for parallax
       cloudRef.current.rotation.y += 0.05 * 0.016;
     }
     if (ringRef.current) {
@@ -93,11 +152,17 @@ export function HomePlanet() {
     }
   });
 
+  const initialScale = LAUNCH.planet.groundedScale;
+
   return (
-    <group position={[0, -10, 0]}>
+    <group
+      ref={groupRef}
+      position={[0, computePlanetY(initialScale), 0]}
+      scale={initialScale}
+    >
       {/* Main planet body — Earth */}
       <mesh ref={meshRef}>
-        <sphereGeometry args={[8, 48, 48]} />
+        <sphereGeometry args={[SPHERE_RADIUS, 48, 48]} />
         {earthTexture ? (
           <meshStandardMaterial
             map={earthTexture}
@@ -144,6 +209,12 @@ export function HomePlanet() {
         />
       </mesh>
 
+      {/* Green ground cover — scales with planet, shrinks away during launch */}
+      <mesh ref={groundDiscRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, SPHERE_RADIUS + 0.01, 0]}>
+        <circleGeometry args={[GROUND_CAP_RADIUS, 64]} />
+        <meshStandardMaterial color={STATION.groundColor} roughness={0.9} />
+      </mesh>
+
       {/* Landing ring */}
       <group ref={ringRef} position={[0, 8.1, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
@@ -170,6 +241,17 @@ export function HomePlanet() {
             depthWrite={false}
           />
         </mesh>
+      </group>
+
+      {/* Station elements — positioned at sphere surface, counter-scaled to world size.
+          Transform chain: planet(S, -2-8S) → pos(0,8,0) → scale(1/S) → offset(0,2,0) → P
+          Result: world position = P (station elements keep their original world coordinates) */}
+      <group position={[0, SPHERE_RADIUS, 0]}>
+        <group ref={stationScaleRef} scale={1 / initialScale}>
+          <group position={[0, 2, 0]}>
+            <LaunchStation />
+          </group>
+        </group>
       </group>
 
       {/* Point light for the planet glow */}

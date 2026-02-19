@@ -297,20 +297,12 @@ export function ExperienceScene() {
 
       <SpaceEnvironment />
       <AtmosphereEffect characterRef={characterRef} />
-      <HomePlanet />
+      <HomePlanet characterRef={characterRef} />
       <Character ref={characterRef} controlsEnabled={controlsEnabled} />
       <PlanetSystem characterRef={characterRef} />
       <GuideTrail />
       <PlanetNarrationTrigger characterRef={characterRef} />
       <UnlockNarrationHandler />
-
-      {/* Home planet billboard (on planet surface, off to the right) */}
-      <SpaceBillboard
-        planetId="home"
-        sectionKey="hero"
-        position={[5, 1, 2]}
-        isUnlocked={true}
-      />
     </Canvas>
   );
 }
