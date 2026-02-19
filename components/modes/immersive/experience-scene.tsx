@@ -4,12 +4,13 @@ import { useRef, useCallback, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Character, type CharacterRef } from "./character";
 import { SpaceEnvironment } from "./environment/space-environment";
+import { AtmosphereEffect } from "./environment/atmosphere-effect";
 import { HomePlanet } from "./planets/home-planet";
 import { Planet } from "./planets/planet";
 import { CollectibleRing } from "./collectibles/collectible-ring";
 import { SpaceBillboard } from "./billboards/space-billboard";
 import { GuideTrail } from "./navigation/guide-trail";
-import { CAMERA_SETTINGS, PLANET_PROXIMITY_THRESHOLD } from "@/lib/three/constants";
+import { CAMERA_SETTINGS, LAUNCH } from "@/lib/three/constants";
 import { PLANETS, getSubPlanetWorldPosition } from "./planets/planet-layout";
 import { NARRATION, PLANET_NARRATION_RADIUS } from "./state/story-data";
 import { useStory } from "./state/story-context";
@@ -22,26 +23,64 @@ function CameraController({
 }) {
   const { camera } = useThree();
   const { state } = useStory();
+  const currentOffsetY = useRef(5);
+  const currentOffsetZ = useRef(6);
+  const currentLerp = useRef(0.1);
 
   useFrame(() => {
     if (!characterRef.current) return;
 
     const characterPos = characterRef.current.position;
+    const launchPhase = characterRef.current.launchPhase;
+    const progress = characterRef.current.launchProgress;
 
-    // Intro: camera closer. Normal: standard follow
-    const isIntro = state.phase === "intro" || state.phase === "launching";
-    const offsetY = isIntro ? 5 : 8;
-    const offsetZ = isIntro ? 6 : 10;
+    // Determine target camera offsets based on phase
+    let targetOffsetY: number;
+    let targetOffsetZ: number;
+    let targetLerp: number;
 
-    const cameraOffset = new Vector3(0, offsetY, offsetZ);
+    if (launchPhase === "grounded") {
+      // Intro: low angle so planet fills the frame
+      targetOffsetY = 2;
+      targetOffsetZ = 4;
+      targetLerp = 0.1;
+    } else if (launchPhase === "lifting") {
+      // Cinematic pullback during launch
+      const liftT = Math.min(progress, 1);
+      targetOffsetY = 2 + (LAUNCH.camera.liftOffsetY - 2) * liftT;
+      targetOffsetZ = 4 + (LAUNCH.camera.liftOffsetZ - 4) * liftT;
+      targetLerp = LAUNCH.camera.liftLerp;
+    } else {
+      // Exploring: standard follow
+      targetOffsetY = 8;
+      targetOffsetZ = 10;
+      targetLerp = 0.1;
+    }
+
+    // Smooth transition between modes
+    currentOffsetY.current += (targetOffsetY - currentOffsetY.current) * 0.05;
+    currentOffsetZ.current += (targetOffsetZ - currentOffsetZ.current) * 0.05;
+    currentLerp.current += (targetLerp - currentLerp.current) * 0.05;
+
+    // Screen shake during ignition and early ascent
+    let shakeX = 0;
+    let shakeY = 0;
+    if (launchPhase === "lifting" && progress < LAUNCH.ascentEnd) {
+      const shakeIntensity = progress < LAUNCH.ignitionEnd
+        ? (progress / LAUNCH.ignitionEnd) * 0.15 // Ramp up during ignition
+        : 0.15 * (1 - (progress - LAUNCH.ignitionEnd) / (LAUNCH.ascentEnd - LAUNCH.ignitionEnd)); // Fade during ascent
+      shakeX = (Math.random() - 0.5) * shakeIntensity;
+      shakeY = (Math.random() - 0.5) * shakeIntensity * 0.5;
+    }
+
     const targetPosition = new Vector3(
-      characterPos.x + cameraOffset.x,
-      characterPos.y + cameraOffset.y,
-      characterPos.z + cameraOffset.z
+      characterPos.x + shakeX,
+      characterPos.y + currentOffsetY.current + shakeY,
+      characterPos.z + currentOffsetZ.current
     );
 
-    camera.position.lerp(targetPosition, 0.1);
-    camera.lookAt(characterPos.x, characterPos.y + 2, characterPos.z);
+    camera.position.lerp(targetPosition, currentLerp.current);
+    camera.lookAt(characterPos.x, characterPos.y + 1, characterPos.z);
   });
 
   return null;
@@ -257,6 +296,7 @@ export function ExperienceScene() {
       <pointLight position={[0, 50, -200]} intensity={0.4} color="#4a9eff" distance={500} />
 
       <SpaceEnvironment />
+      <AtmosphereEffect characterRef={characterRef} />
       <HomePlanet />
       <Character ref={characterRef} controlsEnabled={controlsEnabled} />
       <PlanetSystem characterRef={characterRef} />
@@ -264,11 +304,11 @@ export function ExperienceScene() {
       <PlanetNarrationTrigger characterRef={characterRef} />
       <UnlockNarrationHandler />
 
-      {/* Home planet billboard (pre-unlocked) */}
+      {/* Home planet billboard (on planet surface, off to the right) */}
       <SpaceBillboard
         planetId="home"
         sectionKey="hero"
-        position={[8, 3, 0]}
+        position={[5, 1, 2]}
         isUnlocked={true}
       />
     </Canvas>

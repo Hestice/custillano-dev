@@ -5,13 +5,19 @@ import { useFrame } from "@react-three/fiber";
 import type { Group, Points, Mesh } from "three";
 import { Vector3, BufferAttribute, Color, BufferGeometry, CatmullRomCurve3 } from "three";
 import { useCharacterControls } from "@/lib/three/controls";
-import { CHARACTER_SPEED, CHARACTER_ACCELERATION, CHARACTER_DECELERATION, CHARACTER_ROTATION_SPEED_MIN, CHARACTER_ROTATION_SPEED_MAX, TURN_PENALTY_FACTOR, MIN_TURN_ANGLE } from "@/lib/three/constants";
+import { CHARACTER_SPEED, CHARACTER_ACCELERATION, CHARACTER_DECELERATION, CHARACTER_ROTATION_SPEED_MIN, CHARACTER_ROTATION_SPEED_MAX, TURN_PENALTY_FACTOR, MIN_TURN_ANGLE, LAUNCH } from "@/lib/three/constants";
 import { clampPosition } from "@/lib/three/utils";
 import { useStory } from "./state/story-context";
 
+export type LaunchPhase = "grounded" | "lifting" | "flying";
+
 export interface CharacterRef {
   position: Vector3;
+  launchPhase: LaunchPhase;
+  launchProgress: number;
 }
+
+// --- Flying effects (existing) ---
 
 function JetEffect({ isActive }: { isActive: boolean }) {
   const pointsRef = useRef<Points>(null);
@@ -147,6 +153,157 @@ function SmokeEffect({ isActive }: { isActive: boolean }) {
   );
 }
 
+// --- Launch-specific effects ---
+
+function LaunchFlameEffect({ intensity }: { intensity: number }) {
+  const pointsRef = useRef<Points>(null);
+  const particleCount = 80;
+
+  const geometry = useMemo(() => {
+    const geom = new BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      positions[i3] = (Math.random() - 0.5) * 0.5;
+      positions[i3 + 1] = -Math.random() * 2 - 0.5;
+      positions[i3 + 2] = (Math.random() - 0.5) * 0.5;
+
+      // Hot colors: white core → orange → red tips
+      const t = Math.random();
+      const color = new Color();
+      if (t < 0.3) {
+        color.setRGB(1, 0.95, 0.8); // white-hot core
+      } else if (t < 0.7) {
+        color.setRGB(1, 0.6 + Math.random() * 0.3, 0); // orange
+      } else {
+        color.setRGB(1, 0.15 + Math.random() * 0.2, 0); // red tips
+      }
+      colors[i3] = color.r;
+      colors[i3 + 1] = color.g;
+      colors[i3 + 2] = color.b;
+
+      sizes[i] = Math.random() * 0.15 + 0.08;
+    }
+
+    geom.setAttribute("position", new BufferAttribute(positions, 3));
+    geom.setAttribute("color", new BufferAttribute(colors, 3));
+    geom.setAttribute("size", new BufferAttribute(sizes, 1));
+    return geom;
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!pointsRef.current || intensity <= 0) return;
+
+    const positions = geometry.attributes.position.array as Float32Array;
+    const speed = 4 + intensity * 6;
+
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      // Particles shoot downward (-Y in local space for vertical thrust)
+      positions[i3 + 1] -= delta * (speed + Math.random() * 2);
+      // Slight spread
+      positions[i3] += (Math.random() - 0.5) * delta * intensity * 2;
+      positions[i3 + 2] += (Math.random() - 0.5) * delta * intensity * 2;
+
+      if (positions[i3 + 1] < -3 * intensity - 1) {
+        positions[i3] = (Math.random() - 0.5) * 0.5 * intensity;
+        positions[i3 + 1] = -0.5;
+        positions[i3 + 2] = (Math.random() - 0.5) * 0.5 * intensity;
+      }
+    }
+
+    geometry.attributes.position.needsUpdate = true;
+  });
+
+  if (intensity <= 0) return null;
+
+  return (
+    <points ref={pointsRef} geometry={geometry} position={[0, -0.8, 0]}>
+      <pointsMaterial
+        size={0.25 * intensity}
+        vertexColors
+        transparent
+        opacity={Math.min(intensity, 0.9)}
+        blending={2}
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+function LaunchSmokeEffect({ intensity }: { intensity: number }) {
+  const pointsRef = useRef<Points>(null);
+  const particleCount = 50;
+
+  const geometry = useMemo(() => {
+    const geom = new BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      positions[i3] = (Math.random() - 0.5) * 1.0;
+      positions[i3 + 1] = -Math.random() * 1.5 - 0.8;
+      positions[i3 + 2] = (Math.random() - 0.5) * 1.0;
+
+      const gray = 0.4 + Math.random() * 0.3;
+      colors[i3] = gray;
+      colors[i3 + 1] = gray;
+      colors[i3 + 2] = gray;
+
+      sizes[i] = Math.random() * 0.3 + 0.15;
+    }
+
+    geom.setAttribute("position", new BufferAttribute(positions, 3));
+    geom.setAttribute("color", new BufferAttribute(colors, 3));
+    geom.setAttribute("size", new BufferAttribute(sizes, 1));
+    return geom;
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!pointsRef.current || intensity <= 0) return;
+
+    const positions = geometry.attributes.position.array as Float32Array;
+
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      // Smoke drifts down and outward
+      positions[i3 + 1] -= delta * (1 + Math.random());
+      positions[i3] += (Math.random() - 0.5) * delta * 3;
+      positions[i3 + 2] += (Math.random() - 0.5) * delta * 3;
+
+      if (positions[i3 + 1] < -4) {
+        positions[i3] = (Math.random() - 0.5) * 1.0;
+        positions[i3 + 1] = -0.8;
+        positions[i3 + 2] = (Math.random() - 0.5) * 1.0;
+      }
+    }
+
+    geometry.attributes.position.needsUpdate = true;
+  });
+
+  if (intensity <= 0) return null;
+
+  return (
+    <points ref={pointsRef} geometry={geometry} position={[0, -0.8, 0]}>
+      <pointsMaterial
+        size={0.5 * intensity}
+        vertexColors
+        transparent
+        opacity={0.4 * intensity}
+        blending={2}
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+// --- Helpers ---
+
 function moveTowards(current: number, target: number, maxDelta: number): number {
   const difference = target - current;
   if (Math.abs(difference) <= maxDelta) {
@@ -179,6 +336,8 @@ function lerpAngle(current: number, target: number, maxDelta: number): number {
 
   return normalizeAngle(current + Math.sign(difference) * maxDelta);
 }
+
+// --- Trail ---
 
 interface TrailPoint {
   position: Vector3;
@@ -363,6 +522,8 @@ function Trail({ getPosition }: { getPosition: () => Vector3 }) {
   );
 }
 
+// --- Character ---
+
 interface CharacterProps {
   controlsEnabled?: boolean;
 }
@@ -373,11 +534,13 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
   const velocity = useRef(new Vector3(0, 0, 0));
   const position = useRef(new Vector3(0, 1, 0));
   const [isMoving, setIsMoving] = useState(false);
-  const lastRotation = useRef(0);
+  const lastRotation = useRef(Math.PI); // Start facing -Z
   const { state, dispatch } = useStory();
+  const [launchFlameIntensity, setLaunchFlameIntensity] = useState(0);
+  const [launchSmokeIntensity, setLaunchSmokeIntensity] = useState(0);
 
   // Launch sequence state
-  const launchPhaseRef = useRef<"grounded" | "lifting" | "flying">(
+  const launchPhaseRef = useRef<LaunchPhase>(
     state.phase === "intro" || state.phase === "launching" ? "grounded" : "flying"
   );
   const launchProgress = useRef(0);
@@ -385,6 +548,12 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
   useImperativeHandle(ref, () => ({
     get position() {
       return position.current;
+    },
+    get launchPhase() {
+      return launchPhaseRef.current;
+    },
+    get launchProgress() {
+      return launchProgress.current;
     },
   }));
 
@@ -396,38 +565,97 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
     }
   }, [state.phase]);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!groupRef.current) return;
 
     // Launch sequence animation
     if (launchPhaseRef.current === "grounded") {
-      // Sit on home planet surface (Y = -10 planet center + 8 radius + 1 offset)
+      // Sit on home planet surface — nose points straight up
       groupRef.current.position.set(0, -0.5, 0);
-      groupRef.current.rotation.x = -Math.PI / 6; // Tilt upward slightly
+      groupRef.current.rotation.y = Math.PI;
+      groupRef.current.rotation.x = Math.PI / 2;
       position.current.copy(groupRef.current.position);
       return;
     }
 
     if (launchPhaseRef.current === "lifting") {
-      launchProgress.current += delta * 0.5;
+      launchProgress.current += delta * LAUNCH.liftSpeed;
       const t = Math.min(launchProgress.current, 1);
-      const eased = t * t; // Ease in
 
-      // Lift from planet surface to travel plane
-      const startY = -0.5;
-      const targetY = 1;
-      groupRef.current.position.y = startY + (targetY - startY) * eased;
-      groupRef.current.position.x = 0;
-      groupRef.current.position.z = -eased * 5; // Move forward slightly
+      // Three-phase lift animation
+      if (t <= LAUNCH.ignitionEnd) {
+        // Phase 1: Ignition (t 0→0.15) — rumble, slight lift, no Z
+        const phase = t / LAUNCH.ignitionEnd; // 0→1 within this phase
+        const eased = phase * phase;
 
-      // Gradually level the tilt
-      groupRef.current.rotation.x = (-Math.PI / 6) * (1 - eased);
-      groupRef.current.rotation.y = 0;
+        // Slight lift from -0.5 to 0
+        groupRef.current.position.y = -0.5 + 0.5 * eased;
+        groupRef.current.position.z = 0;
+        groupRef.current.position.x = 0;
+
+        // Rumble shake
+        groupRef.current.position.x += (Math.random() - 0.5) * 0.06 * phase;
+        groupRef.current.position.z += (Math.random() - 0.5) * 0.06 * phase;
+
+        // Keep vertical (nose straight up) during ignition
+        groupRef.current.rotation.y = Math.PI;
+        groupRef.current.rotation.x = Math.PI / 2;
+
+        // Ramp up effects
+        setLaunchFlameIntensity(eased * 0.6);
+        setLaunchSmokeIntensity(eased * 0.8);
+      } else if (t <= LAUNCH.ascentEnd) {
+        // Phase 2: Vertical ascent (t 0.15→0.6) — rapid climb, rocket tilts nose-up
+        const phase = (t - LAUNCH.ignitionEnd) / (LAUNCH.ascentEnd - LAUNCH.ignitionEnd); // 0→1
+        const eased = 1 - (1 - phase) * (1 - phase); // ease out
+
+        // Y: 0 → peakY
+        groupRef.current.position.y = LAUNCH.peakY * eased;
+        // Z: 0 → -10
+        groupRef.current.position.z = -10 * eased;
+        groupRef.current.position.x = 0;
+
+        // Rumble decreases
+        const shake = 0.04 * (1 - phase);
+        groupRef.current.position.x += (Math.random() - 0.5) * shake;
+
+        // Arc from vertical (PI/2) to 45° (PI/4) during ascent
+        groupRef.current.rotation.y = Math.PI;
+        groupRef.current.rotation.x = Math.PI / 2 - (Math.PI / 4) * eased;
+
+        // Full thrust
+        setLaunchFlameIntensity(0.6 + 0.4 * eased);
+        setLaunchSmokeIntensity(0.8 * (1 - phase * 0.5));
+      } else {
+        // Phase 3: Arc & level (t 0.6→1.0) — descend to cruise, accelerate forward
+        const phase = (t - LAUNCH.ascentEnd) / (1 - LAUNCH.ascentEnd); // 0→1
+        const eased = phase * (2 - phase); // ease out
+
+        // Y: peakY → endY
+        groupRef.current.position.y = LAUNCH.peakY + (LAUNCH.endY - LAUNCH.peakY) * eased;
+        // Z: -10 → endZ
+        groupRef.current.position.z = -10 + (LAUNCH.endZ - (-10)) * eased;
+        groupRef.current.position.x = 0;
+
+        // Arc from 45° (PI/4) to horizontal (0) — fully forward-facing
+        groupRef.current.rotation.y = Math.PI;
+        groupRef.current.rotation.x = Math.PI / 4 - (Math.PI / 4) * eased;
+
+        // Effects fade out
+        setLaunchFlameIntensity(1 - eased * 0.8);
+        setLaunchSmokeIntensity(0.4 * (1 - eased));
+      }
 
       position.current.copy(groupRef.current.position);
 
       if (t >= 1) {
         launchPhaseRef.current = "flying";
+        setLaunchFlameIntensity(0);
+        setLaunchSmokeIntensity(0);
+        // Reset rotation for normal flight
+        groupRef.current.rotation.y = Math.PI;
+        groupRef.current.rotation.x = 0;
+        lastRotation.current = Math.PI;
         dispatch({ type: "START_EXPLORING" });
       }
       return;
@@ -551,7 +779,8 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
     position.current.copy(groupRef.current.position);
   });
 
-  const showEffects = isMoving && launchPhaseRef.current === "flying";
+  const showFlyingEffects = isMoving && launchPhaseRef.current === "flying";
+  const showLaunchEffects = launchPhaseRef.current === "lifting";
 
   return (
     <>
@@ -577,8 +806,18 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
           <boxGeometry args={[0.15, 0.4, 0.05]} />
           <meshStandardMaterial color="#6c757d" />
         </mesh>
-        <JetEffect isActive={showEffects} />
-        <SmokeEffect isActive={showEffects} />
+
+        {/* Flying effects (normal movement) */}
+        <JetEffect isActive={showFlyingEffects} />
+        <SmokeEffect isActive={showFlyingEffects} />
+
+        {/* Launch effects (liftoff) */}
+        {showLaunchEffects && (
+          <>
+            <LaunchFlameEffect intensity={launchFlameIntensity} />
+            <LaunchSmokeEffect intensity={launchSmokeIntensity} />
+          </>
+        )}
       </group>
     </>
   );
