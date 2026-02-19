@@ -81,8 +81,8 @@ export const siteConfig = {
       copy: "Configurable palettes sync across motion, typography, and even HDRI choices so each mode still feels cohesive.",
     },
     {
-      title: "Email bridge",
-      copy: "Shared composer component routes messages to the right inbox while keeping the experience inline.",
+      title: "Per-mode contact",
+      copy: "Each mode has its own way to reach out — form on web, interactive command on CLI, beacon in immersive.",
     },
     {
       title: "Mode-aware telemetry",
@@ -92,7 +92,7 @@ export const siteConfig = {
   contact: {
     title: "Tell me about your brief",
     description:
-      "The shared email composer will eventually live here. For now, drop a note with your focus and ideal mode.",
+      "Have a project, collaboration, or idea in mind? Drop a note and I'll get back to you.",
     reasons: [
       "Product design collaborations",
       "Creative technology consulting",
@@ -103,28 +103,36 @@ export const siteConfig = {
   },
   projects: [
     {
-      name: "Signal Deck",
+      name: "Lesson Planner",
       summary:
-        "Design system and dashboard for portfolio triage teams, focused on clarity and speed.",
-      role: "Lead Product Designer",
-      stack: ["Next.js", "Radix UI", "Framer Motion"],
-      link: "https://example.com",
+        "AI-powered lesson plan generator for Philippine teachers, aligned with MATATAG and major curriculum frameworks. Proudest work: a thread-based UX replacing multi-tab workflows.",
+      role: "Maintainer",
+      stack: ["Next.js", "Nx", "NestJS", "Datastore NoSQL"],
+      link: "https://lessonplanner.org",
     },
     {
-      name: "Atlas Lab",
+      name: "The One Hour Project",
       summary:
-        "Immersive narrative site showcasing WebGL prototypes and shader explorations.",
-      role: "Creative Technologist",
-      stack: ["Three.js", "React Three Fiber", "Custom GLSL"],
-      link: "https://example.com",
+        "Exclusive events management platform built for The One Hour Project. Focused on intuitive microanimations and seamless interactions.",
+      role: "Product Engineer",
+      stack: ["Next.js", "Nx", "NestJS"],
+      link: "https://theonehourproject.app",
     },
     {
-      name: "Courier CLI",
+      name: "Custillano Room",
       summary:
-        "Terminal interface that mirrors the main portfolio but optimized for key commands.",
-      role: "Product Designer & Engineer",
-      stack: ["Next.js", "shadcn/ui", "Zustand"],
-      link: "https://example.com",
+        "A 3D room portfolio built with Blender — where web development started as a way to share 3D art with the world.",
+      role: "Designer & Developer",
+      stack: ["Three.js", "Blender"],
+      link: "https://custillano-room-bokoko33.vercel.app",
+    },
+    {
+      name: "VectorPM",
+      summary:
+        "AI-augmented project management tool with kanban, gantt, workload dashboard — built in a single day with Symph's rapid development workflow.",
+      role: "Full-Stack Engineer",
+      stack: ["Next.js", "Firebase"],
+      link: "https://vectorpm.io",
     },
   ],
 } as const;

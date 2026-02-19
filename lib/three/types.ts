@@ -28,3 +28,35 @@ export interface SectionData {
 export type KeyboardState = {
   [key: string]: boolean;
 };
+
+export interface PlanetData {
+  id: string;
+  name: string;
+  sectionKey: string;
+  position: [number, number, number];
+  size: number;
+  color: string;
+  emissiveColor: string;
+  atmosphereColor: string;
+  rotationSpeed: number;
+  collectibleCount: number;
+  subPlanets?: SubPlanetData[];
+}
+
+export interface SubPlanetData {
+  id: string;
+  name: string;
+  sectionIndex: number;
+  offset: [number, number, number];
+  size: number;
+  color: string;
+  emissiveColor: string;
+  collectibleCount: number;
+}
+
+export interface PlanetState {
+  visited: boolean;
+  unlocked: boolean;
+  collectedItems: Set<number>;
+  totalItems: number;
+}
