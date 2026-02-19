@@ -3,6 +3,8 @@ export const NARRATION = {
     "Welcome to custillano.dev. I'm Marcus — product designer and creative technologist. Explore this universe to discover my work.",
   launch: "Systems online. Let's explore.",
   nearPlanet: {
+    tutorial:
+      "Signal Primer ahead. See those orbiting signals? Fly close to collect them.",
     capabilities:
       "The Capabilities Nebula — where craft meets systems thinking.",
     projects: "The Projects System — built work orbiting real problems.",
@@ -12,7 +14,11 @@ export const NARRATION = {
     contact:
       "The Contact Beacon — ready to connect? Collect the signals to open the channel.",
   } as Record<string, string>,
+  tutorialFirstCollect:
+    "Signal acquired. One more to decode the transmission.",
   unlock: {
+    tutorial:
+      "First transmission decoded. Follow the trail — the Capabilities Nebula awaits.",
     "capabilities-0": "Systems UX decoded.",
     "capabilities-1": "Product OS online.",
     "capabilities-2": "Creative Tech unlocked.",

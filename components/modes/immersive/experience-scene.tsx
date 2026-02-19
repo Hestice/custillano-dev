@@ -10,7 +10,7 @@ import { Planet } from "./planets/planet";
 import { CollectibleRing } from "./collectibles/collectible-ring";
 import { SpaceBillboard } from "./billboards/space-billboard";
 import { GuideTrail } from "./navigation/guide-trail";
-import { CAMERA_SETTINGS, LAUNCH } from "@/lib/three/constants";
+import { CAMERA_SETTINGS, LAUNCH, POI_FOCUS_RADIUS, POI_MAX_BLEND, POI_LOCK_HYSTERESIS } from "@/lib/three/constants";
 import { PLANETS, getSubPlanetWorldPosition } from "./planets/planet-layout";
 import { NARRATION, PLANET_NARRATION_RADIUS } from "./state/story-data";
 import { useStory } from "./state/story-context";
@@ -26,6 +26,13 @@ function CameraController({
   const currentOffsetY = useRef(5);
   const currentOffsetZ = useRef(6);
   const currentLerp = useRef(0.1);
+
+  // POI camera focus state
+  const poiBlend = useRef(0);
+  const poiLockedId = useRef<string | null>(null);
+  const poiLockedDist = useRef(Infinity);
+  const lookAtTarget = useRef(new Vector3());
+  const lookAtInitialized = useRef(false);
 
   useFrame(() => {
     if (!characterRef.current) return;
@@ -80,7 +87,130 @@ function CameraController({
     );
 
     camera.position.lerp(targetPosition, currentLerp.current);
-    camera.lookAt(characterPos.x, characterPos.y + 1, characterPos.z);
+
+    // Default lookAt target
+    const defaultLookAt = new Vector3(characterPos.x, characterPos.y + 1, characterPos.z);
+
+    // POI focus (exploring phase only)
+    const isExploring = launchPhase === "flying" && (state.phase === "exploring" || state.phase === "complete");
+
+    if (isExploring) {
+      // Find nearest planet/sub-planet in XZ
+      let nearestId: string | null = null;
+      let nearestDist = Infinity;
+      let nearestBillboardPos: [number, number, number] | null = null;
+
+      for (const planet of PLANETS) {
+        if (planet.id === "home") continue;
+
+        const checkPOI = (id: string, pos: [number, number, number], size: number) => {
+          const dx = characterPos.x - pos[0];
+          const dz = characterPos.z - pos[2];
+          const distXZ = Math.sqrt(dx * dx + dz * dz);
+
+          if (distXZ < POI_FOCUS_RADIUS && distXZ < nearestDist) {
+            nearestDist = distXZ;
+            nearestId = id;
+            nearestBillboardPos = [pos[0], pos[1] + size + 3, pos[2]];
+          }
+        };
+
+        if (planet.subPlanets && planet.subPlanets.length > 0) {
+          for (let si = 0; si < planet.subPlanets.length; si++) {
+            const sub = planet.subPlanets[si];
+            const worldPos = getSubPlanetWorldPosition(planet, si);
+            checkPOI(sub.id, worldPos, sub.size);
+          }
+        } else if (planet.collectibleCount > 0) {
+          checkPOI(planet.id, planet.position, planet.size);
+        }
+
+        // Always check main planet for billboard-bearing planets without sub-planets
+        // Main planets with sub-planets don't have their own billboard
+      }
+
+      // Hysteresis: current lock stays unless a new one is significantly closer
+      if (poiLockedId.current && nearestId !== poiLockedId.current) {
+        if (nearestDist > poiLockedDist.current * POI_LOCK_HYSTERESIS) {
+          // Keep current lock
+          nearestId = poiLockedId.current;
+          nearestDist = poiLockedDist.current;
+          // But we need the billboard pos for the locked planet — recalculate
+          nearestBillboardPos = null;
+          for (const planet of PLANETS) {
+            if (planet.subPlanets) {
+              for (let si = 0; si < planet.subPlanets.length; si++) {
+                if (planet.subPlanets[si].id === poiLockedId.current) {
+                  const wp = getSubPlanetWorldPosition(planet, si);
+                  nearestBillboardPos = [wp[0], wp[1] + planet.subPlanets[si].size + 3, wp[2]];
+                  // Update locked distance with actual current distance
+                  const dx = characterPos.x - wp[0];
+                  const dz = characterPos.z - wp[2];
+                  nearestDist = Math.sqrt(dx * dx + dz * dz);
+                }
+              }
+            } else if (planet.id === poiLockedId.current) {
+              nearestBillboardPos = [planet.position[0], planet.position[1] + planet.size + 3, planet.position[2]];
+              const dx = characterPos.x - planet.position[0];
+              const dz = characterPos.z - planet.position[2];
+              nearestDist = Math.sqrt(dx * dx + dz * dz);
+            }
+          }
+          // If locked planet went out of focus radius, release
+          if (nearestDist >= POI_FOCUS_RADIUS) {
+            nearestId = null;
+            nearestBillboardPos = null;
+          }
+        }
+      }
+
+      poiLockedId.current = nearestId;
+      poiLockedDist.current = nearestDist;
+
+      // Compute target blend
+      let targetBlend = 0;
+      if (nearestId && nearestBillboardPos && nearestDist < POI_FOCUS_RADIUS) {
+        // Closer = stronger blend, max POI_MAX_BLEND
+        targetBlend = POI_MAX_BLEND * (1 - nearestDist / POI_FOCUS_RADIUS);
+      }
+
+      // Smooth ramp blend
+      poiBlend.current += (targetBlend - poiBlend.current) * 0.05;
+
+      // Compute blended lookAt
+      if (poiBlend.current > 0.001 && nearestBillboardPos) {
+        const blend = poiBlend.current;
+        // XZ shifts 30% toward billboard, Y shifts 15%
+        const focusX = defaultLookAt.x + (nearestBillboardPos[0] - defaultLookAt.x) * blend;
+        const focusY = defaultLookAt.y + (nearestBillboardPos[1] - defaultLookAt.y) * blend;
+        const focusZ = defaultLookAt.z + (nearestBillboardPos[2] - defaultLookAt.z) * blend;
+
+        if (!lookAtInitialized.current) {
+          lookAtTarget.current.set(focusX, focusY, focusZ);
+          lookAtInitialized.current = true;
+        } else {
+          lookAtTarget.current.lerp(new Vector3(focusX, focusY, focusZ), 0.08);
+        }
+
+        camera.lookAt(lookAtTarget.current);
+      } else {
+        if (!lookAtInitialized.current) {
+          lookAtTarget.current.copy(defaultLookAt);
+          lookAtInitialized.current = true;
+        } else {
+          lookAtTarget.current.lerp(defaultLookAt, 0.08);
+        }
+        camera.lookAt(lookAtTarget.current);
+      }
+    } else {
+      // Non-exploring phases: direct lookAt
+      camera.lookAt(defaultLookAt);
+      lookAtTarget.current.copy(defaultLookAt);
+      lookAtInitialized.current = true;
+      poiBlend.current = 0;
+      poiLockedId.current = null;
+      poiLockedDist.current = Infinity;
+    }
   });
 
   return null;
@@ -126,7 +256,7 @@ function PlanetSystem({
 }: {
   characterRef: React.RefObject<CharacterRef | null>;
 }) {
-  const { isPlanetUnlocked } = useStory();
+  const { state, isPlanetUnlocked, getCollectedCount, getTotalForPlanet } = useStory();
   const characterPosition = useRef(new Vector3());
 
   useFrame(() => {
@@ -139,6 +269,8 @@ function PlanetSystem({
     <>
       {PLANETS.map((planet) => {
         if (planet.id === "home") return null;
+
+        const showBillboards = state.phase === "exploring" || state.phase === "complete";
 
         const hasSubPlanets = planet.subPlanets && planet.subPlanets.length > 0;
 
@@ -156,26 +288,30 @@ function PlanetSystem({
 
             {/* Planet-level collectibles (for planets without sub-planets like contact) */}
             {!hasSubPlanets && planet.collectibleCount > 0 && (
-              <>
-                <CollectibleRing
-                  planetId={planet.id}
-                  planetCenter={planet.position}
-                  planetSize={planet.size}
-                  count={planet.collectibleCount}
-                  color={planet.emissiveColor}
-                  characterPosition={characterPosition}
-                />
-                <SpaceBillboard
-                  planetId={planet.id}
-                  sectionKey={planet.sectionKey as "contact"}
-                  position={[
-                    planet.position[0],
-                    planet.position[1] + planet.size + 4,
-                    planet.position[2],
-                  ]}
-                  isUnlocked={isPlanetUnlocked(planet.id)}
-                />
-              </>
+              <CollectibleRing
+                planetId={planet.id}
+                planetCenter={planet.position}
+                planetSize={planet.size}
+                count={planet.collectibleCount}
+                color={planet.emissiveColor}
+                characterPosition={characterPosition}
+              />
+            )}
+            {showBillboards && !hasSubPlanets && planet.collectibleCount > 0 && (
+              <SpaceBillboard
+                planetId={planet.id}
+                sectionKey={planet.sectionKey as "contact" | "tutorial"}
+                position={[
+                  planet.position[0],
+                  planet.position[1] + planet.size + 4,
+                  planet.position[2],
+                ]}
+                isUnlocked={isPlanetUnlocked(planet.id)}
+                planetName={planet.name}
+                collectedCount={getCollectedCount(planet.id)}
+                totalRequired={getTotalForPlanet(planet.id)}
+                characterPosition={characterPosition}
+              />
             )}
 
             {/* Sub-planets */}
@@ -200,17 +336,23 @@ function PlanetSystem({
                       characterPosition={characterPosition}
                     />
                   )}
-                  <SpaceBillboard
-                    planetId={sub.id}
-                    sectionKey={planet.sectionKey as "capabilities" | "projects" | "labNotes" | "modes"}
-                    sectionIndex={sub.sectionIndex}
-                    position={[
-                      worldPos[0],
-                      worldPos[1] + sub.size + 3,
-                      worldPos[2],
-                    ]}
-                    isUnlocked={isPlanetUnlocked(sub.id)}
-                  />
+                  {showBillboards && (
+                    <SpaceBillboard
+                      planetId={sub.id}
+                      sectionKey={planet.sectionKey as "capabilities" | "projects" | "labNotes" | "modes"}
+                      sectionIndex={sub.sectionIndex}
+                      position={[
+                        worldPos[0],
+                        worldPos[1] + sub.size + 3,
+                        worldPos[2],
+                      ]}
+                      isUnlocked={isPlanetUnlocked(sub.id)}
+                      planetName={sub.name}
+                      collectedCount={getCollectedCount(sub.id)}
+                      totalRequired={getTotalForPlanet(sub.id)}
+                      characterPosition={characterPosition}
+                    />
+                  )}
                 </group>
               );
             })}

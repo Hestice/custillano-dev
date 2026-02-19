@@ -13,7 +13,7 @@ import {
   type StoryState,
   type StoryAction,
 } from "./story-reducer";
-import { PLANET_UNLOCK_REQUIREMENTS } from "./story-data";
+import { PLANET_UNLOCK_REQUIREMENTS, NARRATION } from "./story-data";
 import { PLANET_VISIT_ORDER } from "../planets/planet-layout";
 
 interface StoryContextValue {
@@ -39,6 +39,11 @@ export function StoryProvider({ children }: { children: ReactNode }) {
       const currentCollected = state.collectedItems.get(planetId);
       const countAfter = (currentCollected?.size ?? 0) + (currentCollected?.has(itemIndex) ? 0 : 1);
       const required = PLANET_UNLOCK_REQUIREMENTS[planetId] ?? 0;
+
+      // Tutorial first-collect narration
+      if (planetId === "tutorial" && countAfter === 1) {
+        dispatch({ type: "SET_NARRATION", text: NARRATION.tutorialFirstCollect });
+      }
 
       if (required > 0 && countAfter >= required) {
         dispatch({ type: "UNLOCK_PLANET", planetId });

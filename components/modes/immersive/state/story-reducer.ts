@@ -24,7 +24,7 @@ export function createInitialState(): StoryState {
     collectedItems: new Map(),
     unlockedPlanets: new Set(["home"]),
     currentNarration: null,
-    suggestedNext: "capabilities",
+    suggestedNext: "tutorial",
   };
 }
 

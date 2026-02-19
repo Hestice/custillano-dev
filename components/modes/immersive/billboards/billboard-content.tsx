@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 
 type SectionType =
   | "hero"
+  | "tutorial"
   | "capabilities"
   | "projects"
   | "labNotes"
@@ -21,6 +22,20 @@ export function BillboardContent({
   sectionKey,
   sectionIndex,
 }: BillboardContentProps) {
+  if (sectionKey === "tutorial") {
+    return (
+      <div className="w-[240px] p-4 text-white">
+        <p className="text-[10px] uppercase tracking-widest text-cyan-400 mb-1">
+          Signal Primer
+        </p>
+        <h3 className="text-sm font-bold mb-2">How Exploration Works</h3>
+        <p className="text-[11px] opacity-80 leading-relaxed">
+          Each planet holds encrypted transmissions. Collect the orbiting signals nearby to decode them and reveal what&apos;s inside. Follow the guide trail to the next destination.
+        </p>
+      </div>
+    );
+  }
+
   if (sectionKey === "hero" || planetId === "home") {
     return (
       <div className="w-[280px] p-4 text-white">

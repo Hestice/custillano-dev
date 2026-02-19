@@ -59,14 +59,24 @@ function LaunchOverlay() {
 }
 
 function ExperienceControls() {
-  const { state } = useStory();
+  const { state, isPlanetUnlocked } = useStory();
 
   if (state.phase === "intro" || state.phase === "launching") return null;
+
+  const tutorialComplete = isPlanetUnlocked("tutorial");
 
   return (
     <div className="absolute top-4 left-4 z-10 text-white bg-black/50 p-4 rounded">
       <p className="text-sm font-mono">WASD to move</p>
-      <p className="text-xs font-mono text-white/50 mt-1">Collect orbs to reveal content</p>
+      <p
+        className={`text-xs font-mono mt-1 ${
+          tutorialComplete ? "text-white/50" : "text-cyan-400/80"
+        }`}
+      >
+        {tutorialComplete
+          ? "Collect signals to decode planet transmissions"
+          : "Fly toward the Signal Primer ahead"}
+      </p>
     </div>
   );
 }

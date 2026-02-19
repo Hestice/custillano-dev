@@ -28,7 +28,8 @@ export function CollectibleRing({
   const { isCollected, collectItem } = useStory();
   const orbPositions = useRef<Map<number, [number, number, number]>>(new Map());
   const orbitRadius = planetSize * 2.5;
-  const [bursts, setBursts] = useState<Array<{ index: number; position: [number, number, number] }>>([]);
+  const burstIdRef = useRef(0);
+  const [bursts, setBursts] = useState<Array<{ id: number; position: [number, number, number] }>>([]);
 
   const handlePositionUpdate = useCallback(
     (index: number) => (pos: [number, number, number]) => {
@@ -53,7 +54,8 @@ export function CollectibleRing({
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (dist < COLLECTIBLE_RADIUS) {
-        setBursts((prev) => [...prev, { index: i, position: [...orbPos] as [number, number, number] }]);
+        const burstId = burstIdRef.current++;
+        setBursts((prev) => [...prev, { id: burstId, position: [...orbPos] as [number, number, number] }]);
         collectItem(planetId, i);
       }
     }
@@ -75,7 +77,7 @@ export function CollectibleRing({
       ))}
       {bursts.map((burst) => (
         <CollectionBurst
-          key={`${planetId}-burst-${burst.index}`}
+          key={`${planetId}-burst-${burst.id}`}
           position={burst.position}
           color={color}
         />

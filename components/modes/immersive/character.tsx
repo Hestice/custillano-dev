@@ -5,7 +5,8 @@ import { useFrame } from "@react-three/fiber";
 import type { Group, Points, Mesh } from "three";
 import { Vector3, BufferAttribute, Color, BufferGeometry, CatmullRomCurve3 } from "three";
 import { useCharacterControls } from "@/lib/three/controls";
-import { CHARACTER_SPEED, CHARACTER_ACCELERATION, CHARACTER_DECELERATION, CHARACTER_ROTATION_SPEED_MIN, CHARACTER_ROTATION_SPEED_MAX, TURN_PENALTY_FACTOR, MIN_TURN_ANGLE, LAUNCH } from "@/lib/three/constants";
+import { CHARACTER_SPEED, CHARACTER_ACCELERATION, CHARACTER_DECELERATION, CHARACTER_ROTATION_SPEED_MIN, CHARACTER_ROTATION_SPEED_MAX, TURN_PENALTY_FACTOR, MIN_TURN_ANGLE, LAUNCH, COLLISION_BUFFER, BOUNCE_FACTOR } from "@/lib/three/constants";
+import { PLANETS, getSubPlanetWorldPosition } from "./planets/planet-layout";
 import { clampPosition } from "@/lib/three/utils";
 import { useStory } from "./state/story-context";
 
@@ -772,6 +773,41 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
 
     groupRef.current.position.x += velocity.current.x * delta;
     groupRef.current.position.z += velocity.current.z * delta;
+
+    // Planet collision (XZ plane only)
+    for (const planet of PLANETS) {
+      if (planet.id === "home") continue;
+
+      const checkAndBounce = (center: [number, number, number], size: number) => {
+        const dx = groupRef.current!.position.x - center[0];
+        const dz = groupRef.current!.position.z - center[2];
+        const distXZ = Math.sqrt(dx * dx + dz * dz);
+        const minDist = size + COLLISION_BUFFER;
+
+        if (distXZ < minDist && distXZ > 0.001) {
+          // Push to boundary
+          const nx = dx / distXZ;
+          const nz = dz / distXZ;
+          groupRef.current!.position.x = center[0] + nx * minDist;
+          groupRef.current!.position.z = center[2] + nz * minDist;
+
+          // Reflect velocity across collision normal
+          const dot = velocity.current.x * nx + velocity.current.z * nz;
+          velocity.current.x = (velocity.current.x - 2 * dot * nx) * BOUNCE_FACTOR;
+          velocity.current.z = (velocity.current.z - 2 * dot * nz) * BOUNCE_FACTOR;
+        }
+      };
+
+      checkAndBounce(planet.position, planet.size);
+
+      if (planet.subPlanets) {
+        for (let si = 0; si < planet.subPlanets.length; si++) {
+          const worldPos = getSubPlanetWorldPosition(planet, si);
+          checkAndBounce(worldPos, planet.subPlanets[si].size);
+        }
+      }
+    }
+
     // Keep Y locked to travel plane
     groupRef.current.position.y = 1;
 

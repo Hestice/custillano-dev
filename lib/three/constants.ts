@@ -6,7 +6,7 @@ export const GROUND_HALF = GROUND_SIZE / 2;
 export const SCENE_BOUNDS: SceneBounds = {
   minX: -500,
   maxX: 500,
-  minZ: -500,
+  minZ: -540,
   maxZ: 50,
 };
 
@@ -39,6 +39,15 @@ export const AMBIENT_PARTICLE_COUNT = 200;
 // Collectible detection
 export const COLLECTIBLE_RADIUS = 3;
 export const PLANET_PROXIMITY_THRESHOLD = 100;
+
+// Planet collision
+export const COLLISION_BUFFER = 0.5;
+export const BOUNCE_FACTOR = 0.6;
+
+// POI camera focus
+export const POI_FOCUS_RADIUS = 40;
+export const POI_MAX_BLEND = 0.3;
+export const POI_LOCK_HYSTERESIS = 0.7;
 
 // Launch sequence
 export const LAUNCH = {
