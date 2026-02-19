@@ -1,5 +1,5 @@
 export interface StoryState {
-  phase: "intro" | "launching" | "exploring" | "complete";
+  phase: "intro" | "launching" | "exploring" | "complete" | "absorbed";
   visitedPlanets: Set<string>;
   collectedItems: Map<string, Set<number>>;
   unlockedPlanets: Set<string>;
@@ -15,7 +15,8 @@ export type StoryAction =
   | { type: "UNLOCK_PLANET"; planetId: string }
   | { type: "SET_NARRATION"; text: string | null }
   | { type: "SET_SUGGESTED_NEXT"; planetId: string | null }
-  | { type: "COMPLETE" };
+  | { type: "COMPLETE" }
+  | { type: "ENTER_BLACK_HOLE" };
 
 export function createInitialState(): StoryState {
   return {
@@ -67,6 +68,9 @@ export function storyReducer(
 
     case "COMPLETE":
       return { ...state, phase: "complete", suggestedNext: null };
+
+    case "ENTER_BLACK_HOLE":
+      return { ...state, phase: "absorbed" };
 
     default:
       return state;

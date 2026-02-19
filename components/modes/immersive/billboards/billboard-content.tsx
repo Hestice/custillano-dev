@@ -119,19 +119,22 @@ export function BillboardContent({
   if (sectionKey === "contact") {
     return (
       <div className="w-[260px] p-4 text-white">
-        <h3 className="text-sm font-bold mb-2">{siteConfig.contact.title}</h3>
+        <p className="text-[10px] uppercase tracking-widest text-purple-400 mb-1">
+          Channel Open
+        </p>
+        <h3 className="text-sm font-bold mb-2">Contact Channel Open</h3>
         <p className="text-[11px] opacity-80 leading-relaxed mb-3">
-          {siteConfig.contact.description}
+          A spatial rift has appeared beyond this beacon. Fly toward it to open a direct line of communication.
         </p>
         <div className="space-y-1">
           {siteConfig.contact.reasons.map((reason) => (
-            <p key={reason} className="text-[10px] text-yellow-400">
+            <p key={reason} className="text-[10px] text-purple-400">
               &bull; {reason}
             </p>
           ))}
         </div>
-        <p className="text-[10px] mt-2 text-emerald-400">
-          {siteConfig.contact.badge}
+        <p className="text-[10px] mt-2 text-purple-300 animate-pulse">
+          The singularity awaits...
         </p>
       </div>
     );

@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import type { Group, Points, Mesh } from "three";
 import { Vector3, BufferAttribute, Color, BufferGeometry, CatmullRomCurve3 } from "three";
 import { useCharacterControls } from "@/lib/three/controls";
-import { CHARACTER_SPEED, CHARACTER_ACCELERATION, CHARACTER_DECELERATION, CHARACTER_ROTATION_SPEED_MIN, CHARACTER_ROTATION_SPEED_MAX, TURN_PENALTY_FACTOR, MIN_TURN_ANGLE, LAUNCH, COLLISION_BUFFER, BOUNCE_FACTOR } from "@/lib/three/constants";
+import { CHARACTER_SPEED, CHARACTER_ACCELERATION, CHARACTER_DECELERATION, CHARACTER_ROTATION_SPEED_MIN, CHARACTER_ROTATION_SPEED_MAX, TURN_PENALTY_FACTOR, MIN_TURN_ANGLE, LAUNCH, COLLISION_BUFFER, BOUNCE_FACTOR, BLACK_HOLE } from "@/lib/three/constants";
 import { PLANETS, getSubPlanetWorldPosition } from "./planets/planet-layout";
 import { clampPosition } from "@/lib/three/utils";
 import { useStory } from "./state/story-context";
@@ -16,6 +16,7 @@ export interface CharacterRef {
   position: Vector3;
   launchPhase: LaunchPhase;
   launchProgress: number;
+  applyForce: (force: Vector3) => void;
 }
 
 // --- Flying effects (existing) ---
@@ -540,6 +541,16 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
   const [launchFlameIntensity, setLaunchFlameIntensity] = useState(0);
   const [launchSmokeIntensity, setLaunchSmokeIntensity] = useState(0);
 
+  // External force accumulator (consumed each frame)
+  const externalForce = useRef(new Vector3());
+
+  // Absorption animation state
+  const absorptionTime = useRef(0);
+  const absorptionStartPos = useRef(new Vector3());
+  const absorptionStartAngle = useRef(0);
+  const absorptionStartRadius = useRef(0);
+  const absorptionInitialized = useRef(false);
+
   // Launch sequence state
   const launchPhaseRef = useRef<LaunchPhase>(
     state.phase === "intro" || state.phase === "launching" ? "grounded" : "flying"
@@ -555,6 +566,9 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
     },
     get launchProgress() {
       return launchProgress.current;
+    },
+    applyForce(force: Vector3) {
+      externalForce.current.add(force);
     },
   }));
 
@@ -659,6 +673,45 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
         lastRotation.current = Math.PI;
         dispatch({ type: "START_EXPLORING" });
       }
+      return;
+    }
+
+    // Absorption spiral animation
+    if (state.phase === "absorbed") {
+      const bhCenter = new Vector3(...BLACK_HOLE.position);
+
+      if (!absorptionInitialized.current) {
+        absorptionStartPos.current.copy(position.current);
+        const dx = position.current.x - bhCenter.x;
+        const dz = position.current.z - bhCenter.z;
+        absorptionStartRadius.current = Math.sqrt(dx * dx + dz * dz);
+        absorptionStartAngle.current = Math.atan2(dx, dz);
+        absorptionTime.current = 0;
+        absorptionInitialized.current = true;
+      }
+
+      absorptionTime.current += delta;
+      const t = Math.min(absorptionTime.current / BLACK_HOLE.spiralDuration, 1);
+
+      // Exponentially decreasing radius
+      const radius = absorptionStartRadius.current * Math.pow(1 - t, 2);
+      // Accelerating angular velocity
+      const angle = absorptionStartAngle.current + t * t * Math.PI * 6;
+
+      const x = bhCenter.x + Math.sin(angle) * radius;
+      const z = bhCenter.z + Math.cos(angle) * radius;
+      const y = bhCenter.y + (position.current.y - bhCenter.y) * (1 - t);
+
+      groupRef.current.position.set(x, y, z);
+
+      // Shrink scale as we approach center
+      const scale = Math.max(1 - t * 0.9, 0.1);
+      groupRef.current.scale.setScalar(scale);
+
+      // Spin the rocket
+      groupRef.current.rotation.y += delta * (5 + t * 15);
+
+      position.current.copy(groupRef.current.position);
       return;
     }
 
@@ -770,6 +823,11 @@ export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEna
       velocity.current.x = moveTowards(velocity.current.x, 0, deceleration);
       velocity.current.z = moveTowards(velocity.current.z, 0, deceleration);
     }
+
+    // Apply external forces (e.g. black hole gravity)
+    velocity.current.x += externalForce.current.x;
+    velocity.current.z += externalForce.current.z;
+    externalForce.current.set(0, 0, 0);
 
     groupRef.current.position.x += velocity.current.x * delta;
     groupRef.current.position.z += velocity.current.z * delta;

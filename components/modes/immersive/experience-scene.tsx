@@ -10,7 +10,8 @@ import { Planet } from "./planets/planet";
 import { CollectibleRing } from "./collectibles/collectible-ring";
 import { SpaceBillboard } from "./billboards/space-billboard";
 import { GuideTrail } from "./navigation/guide-trail";
-import { CAMERA_SETTINGS, LAUNCH, POI_FOCUS_RADIUS, POI_MAX_BLEND, POI_LOCK_HYSTERESIS } from "@/lib/three/constants";
+import { BlackHole } from "./effects/black-hole";
+import { CAMERA_SETTINGS, LAUNCH, POI_FOCUS_RADIUS, POI_MAX_BLEND, POI_LOCK_HYSTERESIS, BLACK_HOLE } from "@/lib/three/constants";
 import { PLANETS, getSubPlanetWorldPosition } from "./planets/planet-layout";
 import { NARRATION, PLANET_NARRATION_RADIUS } from "./state/story-data";
 import { useStory } from "./state/story-context";
@@ -90,6 +91,25 @@ function CameraController({
 
     // Default lookAt target
     const defaultLookAt = new Vector3(characterPos.x, characterPos.y + 1, characterPos.z);
+
+    // Absorption phase: cinematic pull-back toward black hole
+    if (state.phase === "absorbed") {
+      const bhCenter = new Vector3(...BLACK_HOLE.position);
+      const cinematicPos = new Vector3(
+        bhCenter.x,
+        bhCenter.y + 12,
+        bhCenter.z + 15
+      );
+      camera.position.lerp(cinematicPos, 0.03);
+      const cinematicLookAt = new Vector3(
+        bhCenter.x,
+        bhCenter.y,
+        bhCenter.z
+      );
+      lookAtTarget.current.lerp(cinematicLookAt, 0.05);
+      camera.lookAt(lookAtTarget.current);
+      return;
+    }
 
     // POI focus (exploring phase only)
     const isExploring = launchPhase === "flying" && (state.phase === "exploring" || state.phase === "complete");
@@ -410,7 +430,7 @@ function UnlockNarrationHandler() {
 
 export function ExperienceScene() {
   const characterRef = useRef<CharacterRef>(null);
-  const { state } = useStory();
+  const { state, isPlanetUnlocked } = useStory();
 
   const controlsEnabled =
     state.phase === "exploring" || state.phase === "complete";
@@ -442,6 +462,10 @@ export function ExperienceScene() {
       <HomePlanet characterRef={characterRef} />
       <Character ref={characterRef} controlsEnabled={controlsEnabled} />
       <PlanetSystem characterRef={characterRef} />
+      <BlackHole
+        characterRef={characterRef}
+        visible={isPlanetUnlocked("contact")}
+      />
       <GuideTrail />
       <PlanetNarrationTrigger characterRef={characterRef} />
       <UnlockNarrationHandler />

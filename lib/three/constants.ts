@@ -110,3 +110,33 @@ export const STATION = {
   buildingAccent: "#333333",
   infoBoardColor: "#1a1a2e",
 };
+
+// Black hole (contact portal)
+export const BLACK_HOLE = {
+  position: [0, 2, -490] as [number, number, number],
+  // Visual
+  coreRadius: 2,
+  accretionInnerRadius: 3,
+  accretionOuterRadius: 8,
+  colors: {
+    core: "#0a0010",
+    rimEmissive: "#7c3aed",
+    accretion: "#a855f7",
+    accretionEmissive: "#7c3aed",
+    particles: "#c084fc",
+  },
+  swirlParticleCount: 200,
+  spawnDuration: 2.5,
+  // Physics
+  pullRadius: 40,
+  pullStrength: 0.08,
+  eventHorizonRadius: 4,
+  // Absorption
+  spiralDuration: 3,
+  fadeStartRatio: 0.6, // fade begins at 60% of spiral
+  overlayFadeDelay: 1.8, // seconds before overlay starts
+  overlayFadeDuration: 1.2, // seconds for fade-to-black
+  redirectDelay: 500, // ms after full black before redirect
+  // Narration
+  approachRadius: 50,
+};

@@ -13,6 +13,8 @@ export const NARRATION = {
       "Modes Station — three ways to experience the same portfolio, same source.",
     contact:
       "The Contact Beacon — ready to connect? Collect the signals to open the channel.",
+    blackHole:
+      "A rift in space... something pulls you toward it.",
   } as Record<string, string>,
   tutorialFirstCollect:
     "Signal acquired. One more to decode the transmission.",
@@ -31,10 +33,13 @@ export const NARRATION = {
     "modes-0": "CLI Mode revealed.",
     "modes-1": "Web Mode revealed.",
     "modes-2": "Immersive Mode revealed.",
-    contact: "Contact Beacon activated.",
+    contact:
+      "Contact channel open. A rift has formed nearby... something pulls you toward it.",
   } as Record<string, string>,
   complete:
-    "Transmission complete. All systems explored. Want to collaborate? The beacon is open.",
+    "All transmissions decoded. The rift deepens — the singularity awaits.",
+  absorbed:
+    "Crossing the event horizon...",
 } as const;
 
 export const PLANET_UNLOCK_REQUIREMENTS: Record<string, number> = {};

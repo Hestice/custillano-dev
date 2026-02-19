@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExperienceScene } from "@/components/modes/immersive/experience-scene";
 import { StoryProvider, useStory } from "@/components/modes/immersive/state/story-context";
 import { NarrationHud } from "@/components/modes/immersive/hud/narration-hud";
 import { ProgressHud } from "@/components/modes/immersive/hud/progress-hud";
 import { NARRATION } from "@/components/modes/immersive/state/story-data";
+import { BLACK_HOLE } from "@/lib/three/constants";
 
 function LaunchOverlay() {
   const { state, dispatch } = useStory();
@@ -58,6 +59,58 @@ function LaunchOverlay() {
   );
 }
 
+function AbsorptionOverlay() {
+  const { state } = useStory();
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const startedRef = useRef(false);
+  const redirectedRef = useRef(false);
+
+  useEffect(() => {
+    if (state.phase !== "absorbed" || startedRef.current) return;
+    startedRef.current = true;
+
+    // Delay before starting fade
+    const delayTimer = setTimeout(() => {
+      if (!overlayRef.current) return;
+
+      const startTime = performance.now();
+      const duration = BLACK_HOLE.overlayFadeDuration * 1000;
+
+      function animate(now: number) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        if (overlayRef.current) {
+          overlayRef.current.style.opacity = String(progress);
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else if (!redirectedRef.current) {
+          redirectedRef.current = true;
+          setTimeout(() => {
+            window.location.href = "/#contact";
+          }, BLACK_HOLE.redirectDelay);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }, BLACK_HOLE.overlayFadeDelay * 1000);
+
+    return () => clearTimeout(delayTimer);
+  }, [state.phase]);
+
+  if (state.phase !== "absorbed") return null;
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 bg-black pointer-events-none"
+      style={{ opacity: 0 }}
+    />
+  );
+}
+
 function ExperienceControls() {
   const { state, isPlanetUnlocked } = useStory();
 
@@ -90,6 +143,7 @@ export default function ExperiencePage() {
         <NarrationHud />
         <ProgressHud />
         <ExperienceControls />
+        <AbsorptionOverlay />
       </div>
     </StoryProvider>
   );
