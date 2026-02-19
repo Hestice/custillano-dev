@@ -5,6 +5,7 @@ import { TerminalInput } from "./terminal-input";
 import { TerminalOutput } from "./terminal-output";
 import { executeCommand } from "@/lib/terminal/command-parser";
 import { getCompletions } from "@/lib/terminal/autocomplete";
+import { useUserName } from "@/providers/user/user-provider";
 import type {
   TerminalContext,
   CommandHistoryEntry,
@@ -12,9 +13,27 @@ import type {
 } from "@/lib/terminal/types";
 import { cn } from "@/lib/utils";
 
+function getBootMessages(name: string | null): CommandHistoryEntry[] {
+  const greeting = name
+    ? `Welcome back, ${name}. Type \`help\` to get started.`
+    : "Welcome to custillano.dev. Type `help` to get started.";
+
+  return [
+    {
+      input: "",
+      output: `custillano.dev v1.0.0\n${greeting}`,
+      timestamp: Date.now(),
+      error: false,
+    },
+  ];
+}
+
 export function Terminal() {
+  const { name } = useUserName();
   const [input, setInput] = useState("");
-  const [history, setHistory] = useState<CommandHistoryEntry[]>([]);
+  const [history, setHistory] = useState<CommandHistoryEntry[]>(() =>
+    getBootMessages(name)
+  );
   const [currentDirectory, setCurrentDirectory] = useState("/");
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -444,11 +463,11 @@ export function Terminal() {
     <div
       ref={containerRef}
       className={cn(
-        "h-screen w-full bg-background text-foreground",
-        "overflow-y-auto p-6",
-        "select-none"
+        "h-dvh w-full bg-background text-foreground",
+        "overflow-y-auto overscroll-contain p-4 md:p-6",
+        "select-none terminal-cursor-hide"
       )}
-      style={{ cursor: "none", pointerEvents: "auto" }}
+      style={{ pointerEvents: "auto" }}
     >
       <div className="max-w-4xl mx-auto space-y-4">
         <TerminalOutput history={history} />

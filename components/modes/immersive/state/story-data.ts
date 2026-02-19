@@ -8,7 +8,7 @@ export const NARRATION = {
     capabilities:
       "The Capabilities Nebula — where craft meets systems thinking.",
     projects: "The Projects System — built work orbiting real problems.",
-    labNotes: "The Lab Notes Belt — experiments and explorations in progress.",
+    howIWork: "The How I Work orbit — the principles behind every project.",
     modes:
       "Modes Station — three ways to experience the same portfolio, same source.",
     contact:
@@ -28,9 +28,12 @@ export const NARRATION = {
     "projects-1": "The One Hour Project unlocked.",
     "projects-2": "Custillano Room activated.",
     "projects-3": "VectorPM online.",
-    "labNotes-0": "Dynamic Theming notes received.",
-    "labNotes-1": "Email Bridge data decoded.",
-    "labNotes-2": "Mode Telemetry logs loaded.",
+    "howIWork-0": "Problem-First Thinking decoded.",
+    "howIWork-1": "AI-Augmented Delivery online.",
+    "howIWork-2": "Multi-Angle Solutions unlocked.",
+    "howIWork-3": "Security by Default activated.",
+    "howIWork-4": "Iterative & Transparent loaded.",
+    "howIWork-5": "Ship-Ready Quality confirmed.",
     "modes-0": "CLI Mode revealed.",
     "modes-1": "Web Mode revealed.",
     "modes-2": "Immersive Mode revealed.",

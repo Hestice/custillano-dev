@@ -9,7 +9,7 @@ import { BillboardContent } from "./billboard-content";
 
 interface SpaceBillboardProps {
   planetId: string;
-  sectionKey: "hero" | "capabilities" | "projects" | "labNotes" | "modes" | "contact" | "tutorial";
+  sectionKey: "hero" | "capabilities" | "projects" | "howIWork" | "modes" | "contact" | "tutorial";
   sectionIndex?: number;
   position: [number, number, number];
   isUnlocked: boolean;

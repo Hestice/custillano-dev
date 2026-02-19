@@ -125,6 +125,12 @@
   }
 }
 
+@media (hover: hover) {
+  .terminal-cursor-hide {
+    cursor: none;
+  }
+}
+
 @keyframes blink {
   0%, 50% {
     opacity: 1;

@@ -75,18 +75,30 @@ export const siteConfig = {
       icon: "joystick",
     },
   ],
-  labNotes: [
+  howIWork: [
     {
-      title: "Dynamic theming engine",
-      copy: "Configurable palettes sync across motion, typography, and even HDRI choices so each mode still feels cohesive.",
+      title: "Problem-First Thinking",
+      copy: "High-level planning where most of the work is figuring out what the real problem is. A problem well-identified is a problem half-solved.",
     },
     {
-      title: "Per-mode contact",
-      copy: "Each mode has its own way to reach out — form on web, interactive command on CLI, beacon in immersive.",
+      title: "AI-Augmented Delivery",
+      copy: "AI handles the repetitive nitty-gritty so I can focus on what matters: talking with the client and making strategic decisions.",
     },
     {
-      title: "Mode-aware telemetry",
-      copy: "Simple analytics hooks record which experience resonates to help prioritize future drops.",
+      title: "Multi-Angle Solutions",
+      copy: "I draft multiple approaches with a clear recommendation, but nothing is set in stone — client input is always part of the process.",
+    },
+    {
+      title: "Security by Default",
+      copy: "Every system I build is hardened from the start. Auth flows, data handling, and infra are reviewed against real-world threat models.",
+    },
+    {
+      title: "Iterative & Transparent",
+      copy: "Regular check-ins, async updates, and working demos over slide decks. You see progress, not just promises.",
+    },
+    {
+      title: "Ship-Ready Quality",
+      copy: "I care about what happens after handoff — clean code, documented decisions, and infra that the next engineer can actually maintain.",
     },
   ],
   contact: {
