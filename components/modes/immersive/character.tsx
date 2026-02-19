@@ -7,6 +7,7 @@ import { Vector3, BufferAttribute, Color, BufferGeometry, CatmullRomCurve3 } fro
 import { useCharacterControls } from "@/lib/three/controls";
 import { CHARACTER_SPEED, CHARACTER_ACCELERATION, CHARACTER_DECELERATION, CHARACTER_ROTATION_SPEED_MIN, CHARACTER_ROTATION_SPEED_MAX, TURN_PENALTY_FACTOR, MIN_TURN_ANGLE } from "@/lib/three/constants";
 import { clampPosition } from "@/lib/three/utils";
+import { useStory } from "./state/story-context";
 
 export interface CharacterRef {
   position: Vector3;
@@ -155,7 +156,6 @@ function moveTowards(current: number, target: number, maxDelta: number): number 
 }
 
 function lerpAngle(current: number, target: number, maxDelta: number): number {
-  // Normalize angles to [-π, π]
   const normalizeAngle = (angle: number) => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
     while (angle < -Math.PI) angle += 2 * Math.PI;
@@ -167,7 +167,6 @@ function lerpAngle(current: number, target: number, maxDelta: number): number {
 
   let difference = target - current;
 
-  // Take the shortest path
   if (difference > Math.PI) {
     difference -= 2 * Math.PI;
   } else if (difference < -Math.PI) {
@@ -206,7 +205,7 @@ function Trail({ getPosition }: { getPosition: () => Vector3 }) {
 
     const curve = new CatmullRomCurve3(points.map(p => p.position), false);
     const segments = Math.min(points.length * 4, 200);
-    
+
     const positions: number[] = [];
     const normals: number[] = [];
     const colors: number[] = [];
@@ -221,18 +220,18 @@ function Trail({ getPosition }: { getPosition: () => Vector3 }) {
       const t = i / segments;
       const point = curve.getPoint(t);
       const tangent = curve.getTangent(t).normalize();
-      
+
       const pointIndex = Math.min(Math.floor(t * (points.length - 1)), points.length - 1);
       const pointData = points[pointIndex];
       const timeSinceCreation = currentTime - pointData.time;
       const distanceFromCurrent = point.distanceTo(currentPosition);
-      
+
       const timeFade = Math.max(0, 1 - timeSinceCreation / maxTrailTime);
       const distanceFade = Math.max(0, 1 - distanceFromCurrent / maxTrailDistance);
       const fade = Math.min(timeFade, distanceFade);
-      
+
       const radius = minRadius + (maxRadius - minRadius) * fade * (1 - t);
-      
+
       const up = new Vector3(0, 1, 0);
       const right = new Vector3().crossVectors(tangent, up).normalize();
       if (right.length() < 0.1) {
@@ -244,22 +243,22 @@ function Trail({ getPosition }: { getPosition: () => Vector3 }) {
         const angle = (j / radialSegments) * Math.PI * 2;
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
-        
+
         tempVec.copy(normal).multiplyScalar(cos * radius);
         tempVec.addScaledVector(right, sin * radius);
         tempVec.add(point);
-        
+
         positions.push(tempVec.x, tempVec.y, tempVec.z);
-        
+
         tempNormal.copy(normal).multiplyScalar(cos);
         tempNormal.addScaledVector(right, sin);
         tempNormal.normalize();
         normals.push(tempNormal.x, tempNormal.y, tempNormal.z);
-        
+
         const colorIntensity = fade * 0.8 + 0.2;
         tempColor.setRGB(0.29, 0.62, 1.0).multiplyScalar(colorIntensity);
         colors.push(tempColor.r, tempColor.g, tempColor.b);
-        
+
         uvs.push(t, j / radialSegments);
       }
     }
@@ -287,40 +286,40 @@ function Trail({ getPosition }: { getPosition: () => Vector3 }) {
     return geometry;
   };
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const currentTime = state.clock.elapsedTime;
     const currentPosition = getPosition();
-    const groundPosition = new Vector3(currentPosition.x, 0.05, currentPosition.z);
-    
+    const trailPosition = new Vector3(currentPosition.x, currentPosition.y, currentPosition.z);
+
     if (!lastPositionRef.current) {
-      pointsRef.current.push({ position: groundPosition.clone(), time: currentTime });
-      lastPositionRef.current = groundPosition.clone();
+      pointsRef.current.push({ position: trailPosition.clone(), time: currentTime });
+      lastPositionRef.current = trailPosition.clone();
       lastUpdateTime.current = currentTime;
     }
-    
-    const shouldAddPoint = 
+
+    const shouldAddPoint =
       currentTime - lastUpdateTime.current >= trailUpdateInterval &&
-      (!lastPositionRef.current || groundPosition.distanceTo(lastPositionRef.current) >= minDistance);
-    
+      (!lastPositionRef.current || trailPosition.distanceTo(lastPositionRef.current) >= minDistance);
+
     if (shouldAddPoint) {
-      pointsRef.current.push({ position: groundPosition.clone(), time: currentTime });
-      lastPositionRef.current = groundPosition.clone();
+      pointsRef.current.push({ position: trailPosition.clone(), time: currentTime });
+      lastPositionRef.current = trailPosition.clone();
       lastUpdateTime.current = currentTime;
     }
-    
+
     pointsRef.current = pointsRef.current.filter(point => {
       const timeSinceCreation = currentTime - point.time;
       const distanceFromCurrent = point.position.distanceTo(currentPosition);
       return timeSinceCreation < maxTrailTime && distanceFromCurrent < maxTrailDistance;
     });
-    
+
     if (pointsRef.current.length > maxTrailLength) {
       pointsRef.current = pointsRef.current.slice(-maxTrailLength);
     }
-    
+
     if (pointsRef.current.length >= 2) {
       const newGeometry = createTaperedTrailGeometry(pointsRef.current, currentPosition, currentTime);
-      
+
       if (newGeometry) {
         if (geometryRef.current) {
           geometryRef.current.dispose();
@@ -350,7 +349,7 @@ function Trail({ getPosition }: { getPosition: () => Vector3 }) {
   }
 
   return (
-    <mesh ref={trailRef} geometry={geometryRef.current} receiveShadow>
+    <mesh ref={trailRef} geometry={geometryRef.current}>
       <meshStandardMaterial
         vertexColors
         transparent
@@ -364,13 +363,24 @@ function Trail({ getPosition }: { getPosition: () => Vector3 }) {
   );
 }
 
-export const Character = forwardRef<CharacterRef>((props, ref) => {
+interface CharacterProps {
+  controlsEnabled?: boolean;
+}
+
+export const Character = forwardRef<CharacterRef, CharacterProps>(({ controlsEnabled = true }, ref) => {
   const groupRef = useRef<Group>(null);
   const { getMovementDirection } = useCharacterControls();
   const velocity = useRef(new Vector3(0, 0, 0));
   const position = useRef(new Vector3(0, 1, 0));
   const [isMoving, setIsMoving] = useState(false);
   const lastRotation = useRef(0);
+  const { state, dispatch } = useStory();
+
+  // Launch sequence state
+  const launchPhaseRef = useRef<"grounded" | "lifting" | "flying">(
+    state.phase === "intro" || state.phase === "launching" ? "grounded" : "flying"
+  );
+  const launchProgress = useRef(0);
 
   useImperativeHandle(ref, () => ({
     get position() {
@@ -378,12 +388,57 @@ export const Character = forwardRef<CharacterRef>((props, ref) => {
     },
   }));
 
+  // Handle launch trigger
+  useEffect(() => {
+    if (state.phase === "launching" && launchPhaseRef.current === "grounded") {
+      launchPhaseRef.current = "lifting";
+      launchProgress.current = 0;
+    }
+  }, [state.phase]);
+
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
+    // Launch sequence animation
+    if (launchPhaseRef.current === "grounded") {
+      // Sit on home planet surface (Y = -10 planet center + 8 radius + 1 offset)
+      groupRef.current.position.set(0, -0.5, 0);
+      groupRef.current.rotation.x = -Math.PI / 6; // Tilt upward slightly
+      position.current.copy(groupRef.current.position);
+      return;
+    }
+
+    if (launchPhaseRef.current === "lifting") {
+      launchProgress.current += delta * 0.5;
+      const t = Math.min(launchProgress.current, 1);
+      const eased = t * t; // Ease in
+
+      // Lift from planet surface to travel plane
+      const startY = -0.5;
+      const targetY = 1;
+      groupRef.current.position.y = startY + (targetY - startY) * eased;
+      groupRef.current.position.x = 0;
+      groupRef.current.position.z = -eased * 5; // Move forward slightly
+
+      // Gradually level the tilt
+      groupRef.current.rotation.x = (-Math.PI / 6) * (1 - eased);
+      groupRef.current.rotation.y = 0;
+
+      position.current.copy(groupRef.current.position);
+
+      if (t >= 1) {
+        launchPhaseRef.current = "flying";
+        dispatch({ type: "START_EXPLORING" });
+      }
+      return;
+    }
+
+    // Normal flight controls (only when controlsEnabled)
+    if (!controlsEnabled) return;
+
     const direction = getMovementDirection();
     const moving = direction.x !== 0 || direction.z !== 0;
-    
+
     if (moving !== isMoving) {
       setIsMoving(moving);
     }
@@ -392,59 +447,44 @@ export const Character = forwardRef<CharacterRef>((props, ref) => {
       velocity.current.x ** 2 + velocity.current.z ** 2
     );
 
-    // Calculate current velocity direction
     const currentVelocityDirection = velocityMagnitude > 0.1
       ? new Vector3(velocity.current.x, 0, velocity.current.z).normalize()
       : null;
 
-    // Calculate target direction and angle
     let targetAngle = lastRotation.current;
     let turnAngle = 0;
 
     if (moving) {
       const inputAngle = Math.atan2(direction.x, direction.z);
-      
+
       if (currentVelocityDirection) {
-        // Calculate angle between current velocity and input direction
         const currentAngle = Math.atan2(velocity.current.x, velocity.current.z);
         let angleDiff = inputAngle - currentAngle;
-        
-        // Normalize to [-π, π]
+
         while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
         while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-        
+
         turnAngle = Math.abs(angleDiff);
-        
-        // Target angle is based on input, but velocity will follow rotation
         targetAngle = inputAngle;
       } else {
-        // No current velocity, rotate towards input
         targetAngle = inputAngle;
       }
     } else if (velocityMagnitude > 0.1) {
-      // No input but still moving, rotate towards velocity direction
       targetAngle = Math.atan2(velocity.current.x, velocity.current.z);
     }
 
-    // Calculate rotation angle difference for dynamic rotation speed
     const currentRotation = groupRef.current.rotation.y;
     let rotationAngleDiff = targetAngle - currentRotation;
-    
-    // Normalize to [-π, π]
+
     while (rotationAngleDiff > Math.PI) rotationAngleDiff -= 2 * Math.PI;
     while (rotationAngleDiff < -Math.PI) rotationAngleDiff += 2 * Math.PI;
-    
+
     const absRotationAngle = Math.abs(rotationAngleDiff);
-    
-    // Dynamic rotation speed: faster for sharp turns, slower for small adjustments
-    // Use a smooth curve that scales from MIN to MAX based on rotation angle
     const normalizedAngle = Math.min(absRotationAngle / Math.PI, 1);
-    // Use a power curve for smoother transition (cubic for more pronounced effect)
     const speedFactor = normalizedAngle ** 1.5;
-    const dynamicRotationSpeed = CHARACTER_ROTATION_SPEED_MIN + 
+    const dynamicRotationSpeed = CHARACTER_ROTATION_SPEED_MIN +
       (CHARACTER_ROTATION_SPEED_MAX - CHARACTER_ROTATION_SPEED_MIN) * speedFactor;
-    
-    // Smoothly interpolate rotation with dynamic speed
+
     const rotationDelta = dynamicRotationSpeed * delta;
     const newRotation = lerpAngle(
       currentRotation,
@@ -454,38 +494,28 @@ export const Character = forwardRef<CharacterRef>((props, ref) => {
     groupRef.current.rotation.y = newRotation;
     lastRotation.current = newRotation;
 
-    // Calculate turn penalty for sharp turns
     let turnPenalty = 0;
     if (moving && currentVelocityDirection && turnAngle > MIN_TURN_ANGLE) {
-      // Use a smoother curve for turn penalty - less aggressive for very sharp turns
-      // Square root curve makes 180-degree turns less penalized proportionally
-      const normalizedAngle = Math.min(turnAngle / Math.PI, 1);
-      const curveFactor = Math.sqrt(normalizedAngle); // Smoother curve
+      const normalizedTurnAngle = Math.min(turnAngle / Math.PI, 1);
+      const curveFactor = Math.sqrt(normalizedTurnAngle);
       turnPenalty = curveFactor * TURN_PENALTY_FACTOR;
     }
 
-    // Apply acceleration or deceleration
     if (moving) {
-      // Velocity direction should align with the rocket's current rotation
-      // This constrains movement to follow physics - rocket can only accelerate in direction it's facing
-      const currentRotation = groupRef.current.rotation.y;
+      const currentRot = groupRef.current.rotation.y;
       const rotationDirection = new Vector3(
-        Math.sin(currentRotation),
+        Math.sin(currentRot),
         0,
-        Math.cos(currentRotation)
+        Math.cos(currentRot)
       );
-      
-      // Calculate target speed with turn penalty applied
+
       const baseTargetSpeed = CHARACTER_SPEED;
       const targetSpeed = baseTargetSpeed * (1 - turnPenalty);
-      
-      // Target velocity is in the direction the rocket is facing
       const projectedTarget = rotationDirection.clone().multiplyScalar(targetSpeed);
-      
-      // Reduce acceleration when turning sharply (less aggressive reduction)
+
       const effectiveAcceleration = CHARACTER_ACCELERATION * (1 - turnPenalty * 0.3);
       const acceleration = effectiveAcceleration * delta;
-      
+
       velocity.current.x = moveTowards(
         velocity.current.x,
         projectedTarget.x,
@@ -496,8 +526,7 @@ export const Character = forwardRef<CharacterRef>((props, ref) => {
         projectedTarget.z,
         acceleration
       );
-      
-      // Apply additional deceleration during sharp turns to simulate drag (reduced)
+
       if (turnPenalty > 0) {
         const turnDeceleration = CHARACTER_DECELERATION * turnPenalty * 0.3 * delta;
         const currentSpeed = Math.sqrt(velocity.current.x ** 2 + velocity.current.z ** 2);
@@ -508,46 +537,48 @@ export const Character = forwardRef<CharacterRef>((props, ref) => {
         }
       }
     } else {
-      // Decelerate towards zero
       const deceleration = CHARACTER_DECELERATION * delta;
       velocity.current.x = moveTowards(velocity.current.x, 0, deceleration);
       velocity.current.z = moveTowards(velocity.current.z, 0, deceleration);
     }
 
-    // Apply velocity to position
     groupRef.current.position.x += velocity.current.x * delta;
     groupRef.current.position.z += velocity.current.z * delta;
+    // Keep Y locked to travel plane
+    groupRef.current.position.y = 1;
 
     clampPosition(groupRef.current.position);
     position.current.copy(groupRef.current.position);
   });
 
+  const showEffects = isMoving && launchPhaseRef.current === "flying";
+
   return (
     <>
       <Trail getPosition={() => position.current} />
       <group ref={groupRef} position={[0, 1, 0]}>
-        <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
           <coneGeometry args={[0.4, 0.6, 8]} />
           <meshStandardMaterial color="#ff6b6b" />
         </mesh>
-        <mesh position={[0, 0, -0.2]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+        <mesh position={[0, 0, -0.2]} rotation={[-Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.3, 0.3, 0.8, 8]} />
           <meshStandardMaterial color="#4a9eff" />
         </mesh>
-        <mesh position={[0, 0, -0.75]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+        <mesh position={[0, 0, -0.75]} rotation={[-Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.35, 0.3, 0.3, 8]} />
           <meshStandardMaterial color="#ffd93d" />
         </mesh>
-        <mesh position={[0.4, 0, -0.6]} rotation={[0, 4, Math.PI / 2]} castShadow>
+        <mesh position={[0.4, 0, -0.6]} rotation={[0, 4, Math.PI / 2]}>
           <boxGeometry args={[0.15, 0.4, 0.05]} />
           <meshStandardMaterial color="#6c757d" />
         </mesh>
-        <mesh position={[-0.4, 0, -0.6]} rotation={[0, -4, -Math.PI / 2]} castShadow>
+        <mesh position={[-0.4, 0, -0.6]} rotation={[0, -4, -Math.PI / 2]}>
           <boxGeometry args={[0.15, 0.4, 0.05]} />
           <meshStandardMaterial color="#6c757d" />
         </mesh>
-        <JetEffect isActive={isMoving} />
-        <SmokeEffect isActive={isMoving} />
+        <JetEffect isActive={showEffects} />
+        <SmokeEffect isActive={showEffects} />
       </group>
     </>
   );
