@@ -14,7 +14,7 @@ export function CollectionBurst({ position, color }: CollectionBurstProps) {
   const pointsRef = useRef<Points>(null);
   const [alive, setAlive] = useState(true);
   const startTime = useRef<number | null>(null);
-  const particleCount = 20;
+  const particleCount = 30;
 
   const { geometry, velocities } = useMemo(() => {
     const geom = new BufferGeometry();

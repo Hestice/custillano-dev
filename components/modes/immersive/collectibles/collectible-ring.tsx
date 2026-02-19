@@ -54,12 +54,27 @@ export function CollectibleRing({
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
       if (dist < COLLECTIBLE_RADIUS) {
+        // Burst at rocket position on pickup
         const burstId = burstIdRef.current++;
-        setBursts((prev) => [...prev, { id: burstId, position: [...orbPos] as [number, number, number] }]);
+        setBursts((prev) => [
+          ...prev,
+          { id: burstId, position: [charPos.x, charPos.y, charPos.z] as [number, number, number] },
+        ]);
         collectItem(planetId, i);
       }
     }
   });
+
+  const handleReachPlanet = useCallback(
+    (index: number) => () => {
+      const burstId = burstIdRef.current++;
+      setBursts((prev) => [
+        ...prev,
+        { id: burstId, position: [...planetCenter] as [number, number, number] },
+      ]);
+    },
+    [planetCenter]
+  );
 
   return (
     <>
@@ -72,7 +87,9 @@ export function CollectibleRing({
           orbitOffset={(i / count) * Math.PI * 2}
           color={color}
           collected={isCollected(planetId, i)}
+          characterPosition={characterPosition}
           onPositionUpdate={handlePositionUpdate(i)}
+          onReachPlanet={handleReachPlanet(i)}
         />
       ))}
       {bursts.map((burst) => (

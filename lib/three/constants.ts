@@ -40,6 +40,13 @@ export const AMBIENT_PARTICLE_COUNT = 200;
 export const COLLECTIBLE_RADIUS = 3;
 export const PLANET_PROXIMITY_THRESHOLD = 100;
 
+// Collectible magnet pull
+export const MAGNET_RADIUS = 8;
+export const MAGNET_STRENGTH = 0.15;
+
+// Collection return animation
+export const COLLECTION_RETURN_DURATION = 0.6;
+
 // Planet collision
 export const COLLISION_BUFFER = 0.5;
 export const BOUNCE_FACTOR = 0.6;
