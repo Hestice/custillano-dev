@@ -13,9 +13,9 @@ export const siteConfig = {
   hero: {
     modeLabel: "Mode · Web",
     eyebrow: "Product Design · Creative Tech · Spatial UX",
-    headline: "Designing adaptive experiences with a single source of truth.",
+    headline: "I design products that feel right and ship clean.",
     copy:
-      "Pick your interface—CLI, web, or immersive. Each is powered by one configuration file and the same design primitives, so you see the craft, not chaos.",
+      "From product design to creative technology, I build adaptive experiences that solve real problems. Let's talk about yours.",
     primaryCta: {
       label: "Collaborate",
       href: "#contact",
@@ -86,7 +86,7 @@ export const siteConfig = {
     },
     {
       title: "Multi-Angle Solutions",
-      copy: "I draft multiple approaches with a clear recommendation, but nothing is set in stone — client input is always part of the process.",
+      copy: "I draft multiple approaches with a clear recommendation, but nothing is set in stone. Client input is always part of the process.",
     },
     {
       title: "Security by Default",
@@ -98,7 +98,7 @@ export const siteConfig = {
     },
     {
       title: "Ship-Ready Quality",
-      copy: "I care about what happens after handoff — clean code, documented decisions, and infra that the next engineer can actually maintain.",
+      copy: "I care about what happens after handoff. Clean code, documented decisions, and infra that the next engineer can actually maintain.",
     },
   ],
   contact: {
@@ -133,7 +133,7 @@ export const siteConfig = {
     {
       name: "Custillano Room",
       summary:
-        "A 3D room portfolio built with Blender — where web development started as a way to share 3D art with the world.",
+        "A 3D room portfolio built with Blender, where web development started as a way to share 3D art with the world.",
       role: "Designer & Developer",
       stack: ["Three.js", "Blender"],
       link: "https://custillano-room-bokoko33.vercel.app",
@@ -141,7 +141,7 @@ export const siteConfig = {
     {
       name: "VectorPM",
       summary:
-        "AI-augmented project management tool with kanban, gantt, workload dashboard — built in a single day with Symph's rapid development workflow.",
+        "AI-augmented project management tool with kanban, gantt, workload dashboard, built in a single day with Symph's rapid development workflow.",
       role: "Full-Stack Engineer",
       stack: ["Next.js", "Firebase"],
       link: "https://vectorpm.io",

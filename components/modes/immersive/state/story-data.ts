@@ -1,26 +1,26 @@
 export const NARRATION = {
   intro:
-    "Welcome to custillano.dev. I'm Marcus — product designer and creative technologist. Explore this universe to discover my work.",
+    "Welcome to custillano.dev. I'm Marcus, product designer and creative technologist. Explore this universe to discover my work.",
   launch: "Systems online. Let's explore.",
   nearPlanet: {
     tutorial:
       "Signal Primer ahead. See those orbiting signals? Fly close to collect them.",
     capabilities:
-      "The Capabilities Nebula — where craft meets systems thinking.",
-    projects: "The Projects System — built work orbiting real problems.",
-    howIWork: "The How I Work orbit — the principles behind every project.",
+      "The Capabilities Nebula. Where craft meets systems thinking.",
+    projects: "The Projects System. Built work orbiting real problems.",
+    howIWork: "The How I Work orbit. The principles behind every project.",
     modes:
-      "Modes Station — three ways to experience the same portfolio, same source.",
+      "Modes Station. Three ways to experience the same portfolio, same source.",
     contact:
-      "The Contact Beacon — ready to connect? Collect the signals to open the channel.",
+      "The Contact Beacon. Ready to connect? Collect the signals to open the channel.",
     blackHole:
-      "A rift in space... something pulls you toward it.",
+      "A rift in space. Something pulls you toward it.",
   } as Record<string, string>,
   tutorialFirstCollect:
     "Signal acquired. One more to decode the transmission.",
   unlock: {
     tutorial:
-      "First transmission decoded. Follow the trail — the Capabilities Nebula awaits.",
+      "First transmission decoded. Follow the trail. The Capabilities Nebula awaits.",
     "capabilities-0": "Systems UX decoded.",
     "capabilities-1": "Product OS online.",
     "capabilities-2": "Creative Tech unlocked.",
@@ -38,10 +38,10 @@ export const NARRATION = {
     "modes-1": "Web Mode revealed.",
     "modes-2": "Immersive Mode revealed.",
     contact:
-      "Contact channel open. A rift has formed nearby... something pulls you toward it.",
+      "Contact channel open. A rift has formed nearby. Something pulls you toward it.",
   } as Record<string, string>,
   complete:
-    "All transmissions decoded. The rift deepens — the singularity awaits.",
+    "All transmissions decoded. The rift deepens. The singularity awaits.",
   absorbed:
     "Crossing the event horizon...",
 } as const;
