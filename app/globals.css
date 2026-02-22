@@ -141,3 +141,29 @@
     opacity: 0;
   }
 }
+
+@keyframes glow-pulse {
+  0%, 100% {
+    text-shadow: 0 0 8px var(--accent-raw);
+  }
+  50% {
+    text-shadow: 0 0 20px var(--accent-raw), 0 0 40px var(--accent-raw);
+  }
+}
+
+.email-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .email-glow {
+    animation: none;
+  }
+
+  [data-motion],
+  [style*="transform"],
+  [style*="opacity"] {
+    transition: none !important;
+    animation: none !important;
+  }
+}
