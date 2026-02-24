@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function WebModeLanding() {
   return (
-    <div className="bg-background text-foreground">
+    <div className="overflow-x-hidden bg-background text-foreground">
       <DotGrid />
       <LandingContent />
     </div>
