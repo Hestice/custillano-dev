@@ -47,7 +47,7 @@ export function ModesSection() {
         </div>
       </FadeIn>
 
-      <div className="relative">
+      <div className="relative overflow-hidden">
         {/* Decorative parallax layer */}
         <Parallax
           speed={0.15}

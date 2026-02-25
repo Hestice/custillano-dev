@@ -87,7 +87,7 @@ export function TerminalOutput({ history }: TerminalOutputProps) {
     <div className="font-mono text-sm space-y-2">
       {history.map((entry, index) => (
         <div key={index} className="space-y-1">
-          <div className="text-foreground/80">
+          <div className="break-all text-foreground/80">
             <span className="text-muted-foreground">$ </span>
             {entry.input}
           </div>

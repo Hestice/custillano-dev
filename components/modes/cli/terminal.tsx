@@ -464,7 +464,7 @@ export function Terminal() {
       ref={containerRef}
       className={cn(
         "h-dvh w-full bg-background text-foreground",
-        "overflow-y-auto overscroll-contain p-4 md:p-6",
+        "overflow-y-auto overflow-x-hidden overscroll-contain p-4 md:p-6",
         "select-none terminal-cursor-hide"
       )}
       style={{ pointerEvents: "auto" }}

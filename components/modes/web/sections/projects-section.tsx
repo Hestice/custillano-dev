@@ -22,7 +22,7 @@ export function ProjectsSection() {
   const { projects } = siteConfig;
 
   return (
-    <section className="px-6 py-24 md:py-32 lg:px-8 lg:py-40">
+    <section className="py-24 md:py-32 lg:py-40">
       <FadeIn className="mb-12">
         <div className="flex flex-col gap-3">
           <h2 className="text-2xl font-semibold">Projects</h2>

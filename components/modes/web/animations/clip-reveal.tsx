@@ -45,10 +45,17 @@ export function ClipReveal({
     return <div className={className}>{children}</div>;
   }
 
-  // Mobile fallback: simple opacity + scale instead of clipPath
+  const paths = clipPaths[origin];
+
+  // Use key to force remount when touch state changes after hydration,
+  // ensuring the intersection observer properly registers
+  const animationKey = isTouch ? "touch" : "pointer";
+
+  // Touch devices: simple opacity + scale (avoids janky clipPath perf)
   if (isTouch) {
     return (
       <motion.div
+        key={animationKey}
         className={className}
         initial={{ opacity: 0, scale: 0.92 }}
         whileInView={{ opacity: 1, scale: 1 }}
@@ -64,10 +71,9 @@ export function ClipReveal({
     );
   }
 
-  const paths = clipPaths[origin];
-
   return (
     <motion.div
+      key={animationKey}
       className={className}
       initial={{ clipPath: paths.from, opacity: 0 }}
       whileInView={{ clipPath: paths.to, opacity: 1 }}
