@@ -192,7 +192,7 @@ function ExperienceControls() {
 export default function ExperiencePage() {
   return (
     <StoryProvider>
-      <div className="fixed inset-0 w-full h-full bg-black">
+      <div className="fixed inset-0 w-full h-full overflow-hidden bg-black">
         <ExperienceScene />
         <LaunchOverlay />
         <NarrationHud />
