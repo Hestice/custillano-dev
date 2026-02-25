@@ -4,7 +4,9 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ]
   }
 }
