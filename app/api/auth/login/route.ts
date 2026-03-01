@@ -30,15 +30,12 @@ export async function POST(request: Request) {
 
     const supabase = createAnonClient();
 
-    const origin =
-      request.headers.get("origin") ||
-      request.headers.get("referer")?.replace(/\/[^/]*$/, "") ||
-      "http://localhost:3000";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${origin}/api/auth/callback`,
+        emailRedirectTo: `${siteUrl}/api/auth/callback`,
       },
     });
 
