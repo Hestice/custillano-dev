@@ -18,3 +18,14 @@ CREATE INDEX idx_guestbook_entries_ip_address ON guestbook_entries(ip_address);
 -- Partial index for public queries (only non-deleted entries)
 CREATE INDEX idx_guestbook_entries_active ON guestbook_entries(created_at DESC)
   WHERE deleted_at IS NULL;
+
+-- Row Level Security
+ALTER TABLE guestbook_entries ENABLE ROW LEVEL SECURITY;
+
+-- Public can read non-deleted entries (excludes ip_address via API select, but RLS adds defense-in-depth)
+CREATE POLICY "Public can read non-deleted entries" ON guestbook_entries
+  FOR SELECT USING (deleted_at IS NULL);
+
+-- Block direct inserts/updates/deletes from anon key — force through API with service role
+CREATE POLICY "Service role full access" ON guestbook_entries
+  FOR ALL USING (auth.role() = 'service_role');
