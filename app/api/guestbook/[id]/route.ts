@@ -1,24 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServiceClient, createAnonClient } from "@/lib/supabase/client";
-
-async function validateAdmin(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  if (!token) return false;
-
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail) return false;
-
-  const supabase = createAnonClient();
-  const { data, error } = await supabase.auth.getUser(token);
-
-  if (error || !data.user) return false;
-  return data.user.email?.toLowerCase() === adminEmail.toLowerCase();
-}
+import { createServiceClient } from "@/lib/supabase/client";
+import { validateAdmin } from "@/lib/guestbook/validate-admin";
 
 export async function PATCH(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -28,19 +13,37 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    const body = await request.json().catch(() => ({}));
+    const action = (body as { action?: string }).action ?? "delete";
+
     const supabase = createServiceClient();
 
-    const { error } = await supabase
-      .from("guestbook_entries")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+    if (action === "approve") {
+      const { error } = await supabase
+        .from("guestbook_entries")
+        .update({ approved_at: new Date().toISOString() })
+        .eq("id", id);
 
-    if (error) {
-      console.error("Guestbook delete error:", error);
-      return NextResponse.json(
-        { error: "Failed to delete entry" },
-        { status: 500 }
-      );
+      if (error) {
+        console.error("Guestbook approve error:", error);
+        return NextResponse.json(
+          { error: "Failed to approve entry" },
+          { status: 500 }
+        );
+      }
+    } else {
+      const { error } = await supabase
+        .from("guestbook_entries")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Guestbook delete error:", error);
+        return NextResponse.json(
+          { error: "Failed to delete entry" },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ success: true });
