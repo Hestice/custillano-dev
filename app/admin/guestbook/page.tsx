@@ -62,7 +62,7 @@ export default async function AdminGuestbookPage({
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-semibold">Admin Login</h1>
             <p className="text-sm text-muted-foreground">
-              Sign in with your admin email to moderate the guestbook.
+              Sign in to moderate the guestbook.
             </p>
           </div>
           {params.error && (

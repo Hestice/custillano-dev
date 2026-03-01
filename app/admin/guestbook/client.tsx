@@ -15,9 +15,10 @@ function formatDate(dateString: string) {
 }
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,31 +30,24 @@ export function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Failed to send login link");
+        setError(data.error || "Login failed");
         return;
       }
 
-      setSent(true);
+      router.push("/admin/guestbook");
+      router.refresh();
     } catch {
-      setError("Failed to send login link");
+      setError("Login failed");
     } finally {
       setLoading(false);
     }
   };
-
-  if (sent) {
-    return (
-      <div className="rounded-md bg-accent/50 px-4 py-3 text-sm text-center">
-        Check your email for the magic link.
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -65,6 +59,14 @@ export function LoginForm() {
         required
         className="w-full rounded-md border border-border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        required
+        className="w-full rounded-md border border-border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+      />
       {error && (
         <div className="text-sm text-destructive">{error}</div>
       )}
@@ -73,7 +75,7 @@ export function LoginForm() {
         disabled={loading}
         className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
-        {loading ? "Sending..." : "Send Magic Link"}
+        {loading ? "Signing in..." : "Sign In"}
       </button>
     </form>
   );

@@ -3,11 +3,18 @@ import { createAnonClient } from "@/lib/supabase/client";
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email, password } = await request.json();
 
     if (!email || typeof email !== "string") {
       return NextResponse.json(
         { error: "Email is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!password || typeof password !== "string") {
+      return NextResponse.json(
+        { error: "Password is required" },
         { status: 400 }
       );
     }
@@ -20,7 +27,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only send magic link if email matches admin
     if (email.toLowerCase() !== adminEmail.toLowerCase()) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -30,24 +36,28 @@ export async function POST(request: Request) {
 
     const supabase = createAnonClient();
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-    const { error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
-      },
+      password,
     });
 
-    if (error) {
-      console.error("Magic link error:", error);
+    if (error || !data.session) {
       return NextResponse.json(
-        { error: "Failed to send login link" },
-        { status: 500 }
+        { error: "Invalid credentials" },
+        { status: 401 }
       );
     }
 
-    return NextResponse.json({ success: true, message: "Magic link sent" });
+    const response = NextResponse.json({ success: true });
+    response.cookies.set("admin_token", data.session.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60, // 1 hour
+    });
+
+    return response;
   } catch (error) {
     console.error("Auth login error:", error);
     return NextResponse.json(
