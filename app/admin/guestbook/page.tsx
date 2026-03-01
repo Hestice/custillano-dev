@@ -18,24 +18,39 @@ async function getAuthenticatedAdmin(): Promise<boolean> {
   return data.user.email?.toLowerCase() === adminEmail.toLowerCase();
 }
 
-async function getEntries(): Promise<GuestbookEntryAdmin[]> {
-  const supabase = createServiceClient();
-  const { data, error } = await supabase
-    .from("guestbook_entries")
-    .select("*")
-    .order("created_at", { ascending: false });
+const PAGE_SIZE = 20;
 
-  if (error) {
-    console.error("Admin fetch error:", error);
-    return [];
+async function getEntries(page: number) {
+  const supabase = createServiceClient();
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const [entriesResult, countResult] = await Promise.all([
+    supabase
+      .from("guestbook_entries")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, to),
+    supabase
+      .from("guestbook_entries")
+      .select("*", { count: "exact", head: true }),
+  ]);
+
+  if (entriesResult.error) {
+    console.error("Admin fetch error:", entriesResult.error);
+    return { entries: [] as GuestbookEntryAdmin[], total: 0 };
   }
-  return data as GuestbookEntryAdmin[];
+
+  return {
+    entries: entriesResult.data as GuestbookEntryAdmin[],
+    total: countResult.count ?? 0,
+  };
 }
 
 export default async function AdminGuestbookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const isAdmin = await getAuthenticatedAdmin();
@@ -65,7 +80,9 @@ export default async function AdminGuestbookPage({
     );
   }
 
-  const entries = await getEntries();
+  const page = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const { entries, total } = await getEntries(page);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -73,10 +90,14 @@ export default async function AdminGuestbookPage({
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Guestbook Moderation</h1>
           <span className="text-sm text-muted-foreground">
-            {entries.length} total entries
+            {total} total entries
           </span>
         </div>
-        <AdminGuestbookClient initialEntries={entries} />
+        <AdminGuestbookClient
+          initialEntries={entries}
+          page={page}
+          totalPages={totalPages}
+        />
       </div>
     </div>
   );

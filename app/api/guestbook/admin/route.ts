@@ -17,29 +17,47 @@ async function validateAdmin(): Promise<boolean> {
   return data.user.email?.toLowerCase() === adminEmail.toLowerCase();
 }
 
-export async function GET() {
+const PAGE_SIZE = 20;
+
+export async function GET(request: Request) {
   try {
     const isAdmin = await validateAdmin();
     if (!isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const url = new URL(request.url);
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10) || 1);
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
     const supabase = createServiceClient();
 
-    const { data, error } = await supabase
-      .from("guestbook_entries")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [entriesResult, countResult] = await Promise.all([
+      supabase
+        .from("guestbook_entries")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to),
+      supabase
+        .from("guestbook_entries")
+        .select("*", { count: "exact", head: true }),
+    ]);
 
-    if (error) {
-      console.error("Admin guestbook fetch error:", error);
+    if (entriesResult.error) {
+      console.error("Admin guestbook fetch error:", entriesResult.error);
       return NextResponse.json(
         { error: "Failed to fetch entries" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ entries: data });
+    return NextResponse.json({
+      entries: entriesResult.data,
+      total: countResult.count ?? 0,
+      page,
+      totalPages: Math.max(1, Math.ceil((countResult.count ?? 0) / PAGE_SIZE)),
+    });
   } catch (error) {
     console.error("Admin guestbook GET error:", error);
     return NextResponse.json(

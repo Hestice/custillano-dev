@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { GuestbookEntryAdmin } from "@/lib/guestbook/types";
 
 function formatDate(dateString: string) {
@@ -80,9 +81,14 @@ export function LoginForm() {
 
 export function AdminGuestbookClient({
   initialEntries,
+  page,
+  totalPages,
 }: {
   initialEntries: GuestbookEntryAdmin[];
+  page: number;
+  totalPages: number;
 }) {
+  const router = useRouter();
   const [entries, setEntries] = useState(initialEntries);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -164,6 +170,27 @@ export function AdminGuestbookClient({
         <p className="text-sm text-muted-foreground text-center py-8">
           No guestbook entries yet.
         </p>
+      )}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4">
+          <button
+            onClick={() => router.push(`/admin/guestbook?page=${page - 1}`)}
+            disabled={page <= 1}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => router.push(`/admin/guestbook?page=${page + 1}`)}
+            disabled={page >= totalPages}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+          >
+            Next
+          </button>
+        </div>
       )}
     </div>
   );
