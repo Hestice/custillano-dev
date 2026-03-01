@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Heart } from "lucide-react";
 
@@ -56,7 +56,8 @@ export function GuestbookSection() {
   const { entries, loading, submitting, submitEntry } = useGuestbook();
   const { isLiked, toggleLike } = useLikes();
   const { name: storedName } = useUserName();
-  const [name, setName] = useState("");
+  const [nameInput, setNameInput] = useState<string | null>(null);
+  const name = nameInput !== null ? nameInput : (storedName ?? "");
   const [message, setMessage] = useState("");
   const [honey, setHoney] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -64,12 +65,6 @@ export function GuestbookSection() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    if (storedName && !name) {
-      setName(storedName);
-    }
-  }, [storedName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +147,7 @@ export function GuestbookSection() {
                     <Input
                       placeholder="Your name"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e) => setNameInput(e.target.value)}
                       maxLength={50}
                       required
                     />
