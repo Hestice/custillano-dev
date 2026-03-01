@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAnonClient } from "@/lib/supabase/client";
 
 export async function POST(request: Request) {
   try {
@@ -28,37 +28,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Use PKCE flow so the redirect sends a ?code= query param (readable server-side)
-    // instead of an implicit #access_token= fragment (invisible to server routes)
-    const codeVerifierStore: Record<string, string> = {};
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          flowType: "pkce",
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-          persistSession: false,
-          storage: {
-            getItem: (key) => codeVerifierStore[key] ?? null,
-            setItem: (key, value) => {
-              codeVerifierStore[key] = value;
-            },
-            removeItem: (key) => {
-              delete codeVerifierStore[key];
-            },
-          },
-        },
-      }
-    );
+    const supabase = createAnonClient();
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${siteUrl}/api/auth/callback`,
+        emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     });
 
@@ -70,26 +47,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extract the PKCE code verifier and persist it in a cookie so the
-    // callback route can pair it with the authorization code
-    const codeVerifier = Object.values(codeVerifierStore).find(Boolean);
-
-    const response = NextResponse.json({
-      success: true,
-      message: "Magic link sent",
-    });
-
-    if (codeVerifier) {
-      response.cookies.set("pkce_code_verifier", codeVerifier, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 10, // 10 minutes
-      });
-    }
-
-    return response;
+    return NextResponse.json({ success: true, message: "Magic link sent" });
   } catch (error) {
     console.error("Auth login error:", error);
     return NextResponse.json(
