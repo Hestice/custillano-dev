@@ -41,6 +41,13 @@ export function Terminal() {
   const [commandState, setCommandState] = useState<CommandState | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Prefill input when entering guestbook sign mode
+  useEffect(() => {
+    if (commandState?.type === "guestbook" && commandState.currentStep === 0 && name) {
+      setInput(name);
+    }
+  }, [commandState, name]);
+
   const context: TerminalContext = {
     currentDirectory,
     history,
