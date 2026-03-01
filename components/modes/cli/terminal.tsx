@@ -21,7 +21,7 @@ function getBootMessages(name: string | null): CommandHistoryEntry[] {
   return [
     {
       input: "",
-      output: `custillano.dev v1.0.0\n${greeting}`,
+      output: `custillano.dev v2.4.0\n${greeting}`,
       timestamp: Date.now(),
       error: false,
     },
@@ -40,6 +40,13 @@ export function Terminal() {
   const [showCompletions, setShowCompletions] = useState<string[]>([]);
   const [commandState, setCommandState] = useState<CommandState | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Prefill input when entering guestbook sign mode
+  useEffect(() => {
+    if (commandState?.type === "guestbook" && commandState.currentStep === 0 && name) {
+      setInput(name);
+    }
+  }, [commandState, name]);
 
   const context: TerminalContext = {
     currentDirectory,

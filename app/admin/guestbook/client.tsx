@@ -225,155 +225,162 @@ export function AdminGuestbookClient({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Status filter tabs */}
-      <div className="flex gap-1 rounded-lg border border-border p-1">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => navigateWithStatus(tab.value)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              status === tab.value
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+    <div>
+      {/* Sticky toolbar: tabs + bulk actions + select all */}
+      <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-1 pb-3 bg-background border-b border-border space-y-2">
+        {/* Status filter tabs */}
+        <div className="grid grid-cols-4 gap-1 rounded-lg border border-border p-1">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => navigateWithStatus(tab.value)}
+              className={`rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors text-center ${
+                status === tab.value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Bulk action bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 rounded-lg border border-border bg-accent/50 p-2 sm:p-3">
+            <span className="text-xs sm:text-sm font-medium">
+              {selectedIds.size} selected
+            </span>
+            <button
+              onClick={() => handleBatchAction("approve")}
+              disabled={batchLoading}
+              className="rounded-md bg-primary px-2 sm:px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => handleBatchAction("delete")}
+              disabled={batchLoading}
+              className="rounded-md border border-destructive/30 px-2 sm:px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+
+        {/* Select all toggle */}
+        {entries.length > 0 && (
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === entries.length && entries.length > 0}
+              onChange={toggleSelectAll}
+              className="size-4 rounded border-border"
+            />
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size === entries.length
+                ? "Deselect all"
+                : "Select all"}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Bulk action bar */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/50 p-3">
-          <span className="text-sm font-medium">
-            {selectedIds.size} selected
-          </span>
-          <button
-            onClick={() => handleBatchAction("approve")}
-            disabled={batchLoading}
-            className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            Approve Selected
-          </button>
-          <button
-            onClick={() => handleBatchAction("delete")}
-            disabled={batchLoading}
-            className="rounded-md border border-destructive/30 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
-          >
-            Delete Selected
-          </button>
-        </div>
-      )}
-
-      {/* Select all toggle */}
-      {entries.length > 0 && (
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={selectedIds.size === entries.length && entries.length > 0}
-            onChange={toggleSelectAll}
-            className="size-4 rounded border-border"
-          />
-          <span className="text-xs text-muted-foreground">
-            {selectedIds.size === entries.length ? "Deselect all" : "Select all"}
-          </span>
-        </div>
-      )}
-
       {/* Entry list */}
-      {entries.map((entry) => (
-        <div
-          key={entry.id}
-          className={`rounded-lg border p-4 space-y-2 ${
-            entry.deleted_at
-              ? "border-destructive/30 bg-destructive/5 opacity-60"
-              : !entry.approved_at
-                ? "border-yellow-500/30 bg-yellow-500/5"
-                : "border-border"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
+      <div className="space-y-3 pt-3 pb-20">
+        {entries.map((entry) => (
+          <div
+            key={entry.id}
+            className={`rounded-lg border p-3 sm:p-4 space-y-2 ${
+              entry.deleted_at
+                ? "border-destructive/30 bg-destructive/5 opacity-60"
+                : !entry.approved_at
+                  ? "border-yellow-500/30 bg-yellow-500/5"
+                  : "border-border"
+            }`}
+          >
+            <div className="flex items-start gap-2 sm:gap-3">
               <input
                 type="checkbox"
                 checked={selectedIds.has(entry.id)}
                 onChange={() => toggleSelect(entry.id)}
-                className="size-4 shrink-0 rounded border-border"
+                className="size-4 shrink-0 rounded border-border mt-0.5"
               />
-              <div
-                className="size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: entry.planet_color }}
-              />
-              <div className="min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-medium text-sm truncate">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <div
+                    className="size-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: entry.planet_color }}
+                  />
+                  <span className="font-medium text-sm truncate max-w-[150px] sm:max-w-none">
                     {entry.name}
                   </span>
                   <StatusBadge entry={entry} />
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {formatDate(entry.created_at)}
-                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground break-words">
+                <p className="text-sm text-muted-foreground break-words mt-1">
                   {entry.message}
                 </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{formatDate(entry.created_at)}</span>
+                    {entry.ip_address && (
+                      <span className="font-mono hidden sm:inline">
+                        {entry.ip_address}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {!entry.deleted_at && !entry.approved_at && (
+                      <button
+                        onClick={() => handleAction(entry.id, "approve")}
+                        disabled={actionLoading === entry.id}
+                        className="rounded px-2 py-1 text-xs text-primary hover:bg-primary/10 disabled:opacity-50"
+                      >
+                        {actionLoading === entry.id ? "..." : "Approve"}
+                      </button>
+                    )}
+                    {!entry.deleted_at && (
+                      <button
+                        onClick={() => handleAction(entry.id, "delete")}
+                        disabled={actionLoading === entry.id}
+                        className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                      >
+                        {actionLoading === entry.id ? "..." : "Delete"}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {entry.ip_address && (
-                <span className="text-xs text-muted-foreground font-mono">
-                  {entry.ip_address}
-                </span>
-              )}
-              {!entry.deleted_at && !entry.approved_at && (
-                <button
-                  onClick={() => handleAction(entry.id, "approve")}
-                  disabled={actionLoading === entry.id}
-                  className="rounded px-2 py-1 text-xs text-primary hover:bg-primary/10 disabled:opacity-50"
-                >
-                  {actionLoading === entry.id ? "..." : "Approve"}
-                </button>
-              )}
-              {!entry.deleted_at && (
-                <button
-                  onClick={() => handleAction(entry.id, "delete")}
-                  disabled={actionLoading === entry.id}
-                  className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                >
-                  {actionLoading === entry.id ? "..." : "Delete"}
-                </button>
-              )}
-            </div>
           </div>
-        </div>
-      ))}
-      {entries.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">
-          No {status === "all" ? "" : status} guestbook entries.
-        </p>
-      )}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4">
-          <button
-            onClick={() => navigateToPage(page - 1)}
-            disabled={page <= 1}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => navigateToPage(page + 1)}
-            disabled={page >= totalPages}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
-          >
-            Next
-          </button>
-        </div>
-      )}
+        ))}
+        {entries.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No {status === "all" ? "" : status} guestbook entries.
+          </p>
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-2 pt-4">
+            <button
+              onClick={() => navigateToPage(page - 1)}
+              disabled={page <= 1}
+              className="rounded-md border border-border px-2 sm:px-3 py-1.5 text-xs sm:text-sm hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+            >
+              Prev
+            </button>
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => navigateToPage(page + 1)}
+              disabled={page >= totalPages}
+              className="rounded-md border border-border px-2 sm:px-3 py-1.5 text-xs sm:text-sm hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

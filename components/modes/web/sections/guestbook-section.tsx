@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Heart } from "lucide-react";
 
@@ -20,6 +20,7 @@ import { ScaleReveal } from "@/components/modes/web/animations/scale-reveal";
 import { FadeIn } from "@/components/modes/web/animations/fade-in";
 import { useGuestbook } from "@/lib/guestbook/use-guestbook";
 import { useLikes } from "@/lib/guestbook/use-likes";
+import { useUserName } from "@/providers/user/user-provider";
 import { cn } from "@/lib/utils";
 
 function formatDate(dateString: string) {
@@ -54,6 +55,7 @@ export function GuestbookSection() {
   const { guestbook } = siteConfig;
   const { entries, loading, submitting, submitEntry } = useGuestbook();
   const { isLiked, toggleLike } = useLikes();
+  const { name: storedName } = useUserName();
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [honey, setHoney] = useState("");
@@ -62,6 +64,12 @@ export function GuestbookSection() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (storedName && !name) {
+      setName(storedName);
+    }
+  }, [storedName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +82,6 @@ export function GuestbookSection() {
         honey,
         turnstileToken ?? undefined
       );
-      setName("");
       setMessage("");
       setSubmitted(true);
       turnstileRef.current?.reset();
