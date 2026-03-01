@@ -396,6 +396,85 @@ export const commands: Record<string, Command> = {
     },
   },
 
+  guestbook: {
+    name: "guestbook",
+    description: "View or sign the guestbook (use 'guestbook sign' for interactive)",
+    aliases: ["gb"],
+    response: (args: string[], context: TerminalContext) => {
+      const subcommand = args[0]?.toLowerCase();
+
+      if (subcommand === "sign") {
+        if (context.setCommandState) {
+          context.setCommandState({
+            type: "guestbook",
+            data: {},
+            currentStep: 0,
+            prompt: "Name: ",
+          });
+          return "Guestbook (sign mode)\nName: ";
+        }
+        return "Interactive mode unavailable.";
+      }
+
+      // Default: fetch and display entries (handled by effect)
+      return "Reading recent guestbook logs...";
+    },
+    delay: COMMAND_DELAY_MS,
+    effect: async (args: string[], context: TerminalContext) => {
+      const subcommand = args[0]?.toLowerCase();
+      if (subcommand === "sign") return; // handled by interactive mode
+
+      try {
+        const baseUrl = getBaseUrl();
+        const response = await fetch(`${baseUrl}/api/guestbook`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          context.addToHistory({
+            input: "",
+            output: `Error: ${data.error || "Failed to fetch guestbook"}`,
+            timestamp: Date.now(),
+            error: true,
+          });
+          return;
+        }
+
+        const entries = data.entries;
+        if (!entries || entries.length === 0) {
+          context.addToHistory({
+            input: "",
+            output: "No guestbook entries yet. Be the first — run 'guestbook sign'.",
+            timestamp: Date.now(),
+          });
+          return;
+        }
+
+        const formatted = entries
+          .map((e: { name: string; message: string; created_at: string }) => {
+            const date = new Date(e.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+            return `  [${date}] ${e.name}: ${e.message}`;
+          })
+          .join("\n");
+
+        context.addToHistory({
+          input: "",
+          output: `Recent guestbook entries:\n\n${formatted}\n\nSign the guestbook: guestbook sign`,
+          timestamp: Date.now(),
+        });
+      } catch (error) {
+        context.addToHistory({
+          input: "",
+          output: `Error: ${error instanceof Error ? error.message : "Failed to fetch guestbook"}`,
+          timestamp: Date.now(),
+          error: true,
+        });
+      }
+    },
+  },
+
   exit: {
     name: "exit",
     description: "Exit terminal (navigate back to web mode)",

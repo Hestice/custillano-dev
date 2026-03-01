@@ -5,6 +5,7 @@ import { CapabilitiesSection } from "./sections/capabilities-section";
 import { ProjectsSection } from "./sections/projects-section";
 import { ModesSection } from "./sections/modes-section";
 import { HowIWorkSection } from "./sections/how-i-work-section";
+import { GuestbookSection } from "./sections/guestbook-section";
 import { ContactSection } from "./sections/contact-section";
 
 export function LandingContent() {
@@ -15,6 +16,7 @@ export function LandingContent() {
       <ProjectsSection />
       <ModesSection />
       <HowIWorkSection />
+      <GuestbookSection />
       <ContactSection />
     </div>
   );

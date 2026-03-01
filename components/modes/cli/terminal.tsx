@@ -218,6 +218,131 @@ export function Terminal() {
       return;
     }
     
+    if (commandState && commandState.type === "guestbook") {
+      const step = commandState.currentStep || 0;
+      const data = commandState.data as { name?: string; message?: string };
+
+      const entry: CommandHistoryEntry = {
+        input: trimmedInput || "",
+        output: "",
+        timestamp: Date.now(),
+        error: false,
+      };
+      setHistory((prev) => [...prev, entry]);
+
+      if (step === 0) {
+        if (!trimmedInput) {
+          context.addToHistory({
+            input: "",
+            output: "Name cannot be empty. Name: ",
+            timestamp: Date.now(),
+          });
+          setInput("");
+          return;
+        }
+        if (trimmedInput.length > 50) {
+          context.addToHistory({
+            input: "",
+            output: "Name must be 50 characters or less. Name: ",
+            timestamp: Date.now(),
+            error: true,
+          });
+          setInput("");
+          return;
+        }
+        data.name = trimmedInput;
+        setCommandState({
+          type: "guestbook",
+          data,
+          currentStep: 1,
+          prompt: "Message: ",
+        });
+        context.addToHistory({
+          input: "",
+          output: "Message: ",
+          timestamp: Date.now(),
+        });
+      } else if (step === 1) {
+        if (!trimmedInput) {
+          context.addToHistory({
+            input: "",
+            output: "Message cannot be empty. Message: ",
+            timestamp: Date.now(),
+          });
+          setInput("");
+          return;
+        }
+        if (trimmedInput.length > 500) {
+          context.addToHistory({
+            input: "",
+            output: "Message must be 500 characters or less. Message: ",
+            timestamp: Date.now(),
+            error: true,
+          });
+          setInput("");
+          return;
+        }
+        data.message = trimmedInput;
+        setCommandState(null);
+
+        try {
+          const baseUrl =
+            typeof window !== "undefined"
+              ? `${window.location.protocol}//${window.location.host}`
+              : "https://custillano.dev";
+
+          context.addToHistory({
+            input: "",
+            output: "Signing guestbook...",
+            timestamp: Date.now(),
+          });
+
+          const response = await fetch(`${baseUrl}/api/guestbook`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: (data.name || "").trim(),
+              message: (data.message || "").trim(),
+            }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            context.addToHistory({
+              input: "",
+              output: `Error: ${result.error || "Failed to sign guestbook"}`,
+              timestamp: Date.now(),
+              error: true,
+            });
+          } else {
+            context.addToHistory({
+              input: "",
+              output: "Guestbook signed! Your tiny planet is now in orbit.",
+              timestamp: Date.now(),
+            });
+          }
+        } catch (error) {
+          context.addToHistory({
+            input: "",
+            output: `Error: ${error instanceof Error ? error.message : "Failed to sign guestbook"}`,
+            timestamp: Date.now(),
+            error: true,
+          });
+        }
+      }
+
+      setInput("");
+      setHistoryIndex(-1);
+
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      }, 0);
+      return;
+    }
+
     if (!trimmedInput) {
       // Allow empty input to create a blank line
       const entry: CommandHistoryEntry = {

@@ -146,6 +146,15 @@ export function createFileSystem(): FileSystem {
       capabilities
     ),
     createFileSystemNode("modes", "directory", "/modes", modes),
+    createFileSystemNode("guestbook", "directory", "/guestbook", [
+      createFileSystemNode("info", "file", "/guestbook/info", undefined, {
+        title: "Guestbook",
+        description:
+          "Sign the guestbook to leave your mark. Each entry gets a tiny planet in the immersive universe.",
+        usage:
+          "  guestbook           View recent entries\n  guestbook sign      Sign the guestbook (interactive)",
+      }),
+    ]),
     createFileSystemNode(
       "how-i-work",
       "directory",

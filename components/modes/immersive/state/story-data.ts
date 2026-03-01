@@ -13,6 +13,8 @@ export const NARRATION = {
       "Modes Station. Three ways to experience the same portfolio, same source.",
     contact:
       "The Contact Beacon. Ready to connect? Collect the signals to open the channel.",
+    guestbook:
+      "The Visitor Cluster. Travelers who've passed through leave a signal here — each one a tiny world in orbit.",
     blackHole:
       "A rift in space. Something pulls you toward it.",
   } as Record<string, string>,
