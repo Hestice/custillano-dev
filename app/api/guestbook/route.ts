@@ -1,23 +1,32 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/client";
 
-// In-memory rate limiter: IP -> timestamps
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW_MINUTES = 1;
 const RATE_LIMIT_MAX = 3;
 
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const timestamps = rateLimitMap.get(ip) || [];
-  const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  rateLimitMap.set(ip, recent);
-  return recent.length >= RATE_LIMIT_MAX;
-}
+async function isRateLimited(
+  supabase: ReturnType<typeof createServiceClient>,
+  ip: string
+): Promise<boolean> {
+  if (ip === "unknown") return false;
 
-function recordRequest(ip: string) {
-  const timestamps = rateLimitMap.get(ip) || [];
-  timestamps.push(Date.now());
-  rateLimitMap.set(ip, timestamps);
+  const { count, error } = await supabase
+    .from("guestbook_entries")
+    .select("*", { count: "exact", head: true })
+    .eq("ip_address", ip)
+    .gte(
+      "created_at",
+      new Date(
+        Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60_000
+      ).toISOString()
+    );
+
+  if (error) {
+    console.error("Rate limit check error:", error);
+    return false;
+  }
+
+  return (count ?? 0) >= RATE_LIMIT_MAX;
 }
 
 function getClientIp(request: Request): string {
@@ -69,8 +78,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const ip = getClientIp(request);
+    const supabase = createServiceClient();
 
-    if (isRateLimited(ip)) {
+    if (await isRateLimited(supabase, ip)) {
       return NextResponse.json(
         { error: "Too many entries. Please wait a minute." },
         { status: 429 }
@@ -111,8 +121,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createServiceClient();
-
     const { data, error } = await supabase
       .from("guestbook_entries")
       .insert({
@@ -132,8 +140,6 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-
-    recordRequest(ip);
 
     return NextResponse.json({ success: true, id: data.id });
   } catch (error) {
