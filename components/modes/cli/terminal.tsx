@@ -21,7 +21,7 @@ function getBootMessages(name: string | null): CommandHistoryEntry[] {
   return [
     {
       input: "",
-      output: `custillano.dev v1.0.0\n${greeting}`,
+      output: `custillano.dev v2.4.0\n${greeting}`,
       timestamp: Date.now(),
       error: false,
     },
