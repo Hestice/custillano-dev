@@ -12,4 +12,5 @@ export interface GuestbookEntryAdmin extends GuestbookEntry {
   ip_address: string | null;
   approved_at: string | null;
   deleted_at: string | null;
+  hidden_at: string | null;
 }

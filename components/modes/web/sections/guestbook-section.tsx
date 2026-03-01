@@ -20,6 +20,7 @@ import { ScaleReveal } from "@/components/modes/web/animations/scale-reveal";
 import { FadeIn } from "@/components/modes/web/animations/fade-in";
 import { useGuestbook } from "@/lib/guestbook/use-guestbook";
 import { useLikes } from "@/lib/guestbook/use-likes";
+import { useUserName } from "@/providers/user/user-provider";
 import { cn } from "@/lib/utils";
 
 function formatDate(dateString: string) {
@@ -54,7 +55,9 @@ export function GuestbookSection() {
   const { guestbook } = siteConfig;
   const { entries, loading, submitting, submitEntry } = useGuestbook();
   const { isLiked, toggleLike } = useLikes();
-  const [name, setName] = useState("");
+  const { name: storedName } = useUserName();
+  const [nameInput, setNameInput] = useState<string | null>(null);
+  const name = nameInput !== null ? nameInput : (storedName ?? "");
   const [message, setMessage] = useState("");
   const [honey, setHoney] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -74,7 +77,6 @@ export function GuestbookSection() {
         honey,
         turnstileToken ?? undefined
       );
-      setName("");
       setMessage("");
       setSubmitted(true);
       turnstileRef.current?.reset();
@@ -145,7 +147,7 @@ export function GuestbookSection() {
                     <Input
                       placeholder="Your name"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e) => setNameInput(e.target.value)}
                       maxLength={50}
                       required
                     />

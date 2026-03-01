@@ -80,6 +80,7 @@ export async function GET() {
       .select("id, name, message, planet_color, planet_size, likes, created_at")
       .not("approved_at", "is", null)
       .is("deleted_at", null)
+      .is("hidden_at", null)
       .order("created_at", { ascending: false })
       .limit(5);
 

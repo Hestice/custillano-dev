@@ -18,7 +18,7 @@ async function getAuthenticatedAdmin(): Promise<boolean> {
   return data.user.email?.toLowerCase() === adminEmail.toLowerCase();
 }
 
-type StatusFilter = "all" | "pending" | "approved" | "deleted";
+type StatusFilter = "all" | "pending" | "approved" | "deleted" | "hidden";
 
 const PAGE_SIZE = 20;
 
@@ -41,8 +41,11 @@ async function getEntries(page: number, status: StatusFilter) {
     entriesQuery = entriesQuery.is("approved_at", null).is("deleted_at", null);
     countQuery = countQuery.is("approved_at", null).is("deleted_at", null);
   } else if (status === "approved") {
-    entriesQuery = entriesQuery.not("approved_at", "is", null).is("deleted_at", null);
-    countQuery = countQuery.not("approved_at", "is", null).is("deleted_at", null);
+    entriesQuery = entriesQuery.not("approved_at", "is", null).is("deleted_at", null).is("hidden_at", null);
+    countQuery = countQuery.not("approved_at", "is", null).is("deleted_at", null).is("hidden_at", null);
+  } else if (status === "hidden") {
+    entriesQuery = entriesQuery.not("hidden_at", "is", null).is("deleted_at", null);
+    countQuery = countQuery.not("hidden_at", "is", null).is("deleted_at", null);
   } else if (status === "deleted") {
     entriesQuery = entriesQuery.not("deleted_at", "is", null);
     countQuery = countQuery.not("deleted_at", "is", null);
@@ -103,15 +106,16 @@ export default async function AdminGuestbookPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Guestbook Moderation</h1>
-          <span className="text-sm text-muted-foreground">
+    <div className="min-h-dvh bg-background">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        <div className="flex items-center justify-between gap-2 py-4 sm:py-6">
+          <h1 className="text-xl sm:text-2xl font-semibold">Guestbook Moderation</h1>
+          <span className="text-xs sm:text-sm text-muted-foreground shrink-0">
             {total} {status === "all" ? "total" : status} entries
           </span>
         </div>
         <AdminGuestbookClient
+          key={`${status}-${page}`}
           initialEntries={entries}
           page={page}
           totalPages={totalPages}
