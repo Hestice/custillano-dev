@@ -101,6 +101,11 @@ export const siteConfig = {
       copy: "I care about what happens after handoff. Clean code, documented decisions, and infra that the next engineer can actually maintain.",
     },
   ],
+  guestbook: {
+    title: "Guestbook",
+    description: "Been here? Leave a note.",
+    badge: "Community",
+  },
   contact: {
     title: "Tell me about your brief",
     description:

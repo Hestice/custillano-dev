@@ -1,0 +1,170 @@
+"use client";
+
+import { useState } from "react";
+import type { GuestbookEntryAdmin } from "@/lib/guestbook/types";
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to send login link");
+        return;
+      }
+
+      setSent(true);
+    } catch {
+      setError("Failed to send login link");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="rounded-md bg-accent/50 px-4 py-3 text-sm text-center">
+        Check your email for the magic link.
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="admin@example.com"
+        required
+        className="w-full rounded-md border border-border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+      />
+      {error && (
+        <div className="text-sm text-destructive">{error}</div>
+      )}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
+        {loading ? "Sending..." : "Send Magic Link"}
+      </button>
+    </form>
+  );
+}
+
+export function AdminGuestbookClient({
+  initialEntries,
+}: {
+  initialEntries: GuestbookEntryAdmin[];
+}) {
+  const [entries, setEntries] = useState(initialEntries);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/guestbook/${id}`, { method: "PATCH" });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to delete");
+        return;
+      }
+      // Mark as soft-deleted locally
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, deleted_at: new Date().toISOString() } : e
+        )
+      );
+    } catch {
+      alert("Failed to delete entry");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {entries.map((entry) => (
+        <div
+          key={entry.id}
+          className={`rounded-lg border p-4 space-y-2 ${
+            entry.deleted_at
+              ? "border-destructive/30 bg-destructive/5 opacity-60"
+              : "border-border"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="size-3 shrink-0 rounded-full"
+                style={{ backgroundColor: entry.planet_color }}
+              />
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-medium text-sm truncate">
+                    {entry.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {formatDate(entry.created_at)}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground break-words">
+                  {entry.message}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {entry.ip_address && (
+                <span className="text-xs text-muted-foreground font-mono">
+                  {entry.ip_address}
+                </span>
+              )}
+              {entry.deleted_at ? (
+                <span className="text-xs text-destructive">Deleted</span>
+              ) : (
+                <button
+                  onClick={() => handleDelete(entry.id)}
+                  disabled={deleting === entry.id}
+                  className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                >
+                  {deleting === entry.id ? "..." : "Delete"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+      {entries.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          No guestbook entries yet.
+        </p>
+      )}
+    </div>
+  );
+}
