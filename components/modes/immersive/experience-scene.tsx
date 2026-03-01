@@ -12,7 +12,8 @@ import { SpaceBillboard } from "./billboards/space-billboard";
 import { GuideTrail } from "./navigation/guide-trail";
 import { BlackHole } from "./effects/black-hole";
 import { ProjectBlackHole } from "./effects/project-black-hole";
-import { CAMERA_SETTINGS, LAUNCH, POI_FOCUS_RADIUS, POI_MAX_BLEND, POI_LOCK_HYSTERESIS, BLACK_HOLE, PROJECT_BLACK_HOLE } from "@/lib/three/constants";
+import { CAMERA_SETTINGS, LAUNCH, POI_FOCUS_RADIUS, POI_MAX_BLEND, POI_LOCK_HYSTERESIS, BLACK_HOLE, PROJECT_BLACK_HOLE, GUESTBOOK } from "@/lib/three/constants";
+import { GuestbookRegion } from "./guestbook/guestbook-region";
 import { siteConfig } from "@/config/site";
 import { PLANETS, getSubPlanetWorldPosition } from "./planets/planet-layout";
 import { NARRATION, PLANET_NARRATION_RADIUS } from "./state/story-data";
@@ -268,6 +269,19 @@ function PlanetNarrationTrigger({
         }
       }
     }
+
+    // Guestbook region narration
+    if (!triggeredPlanets.current.has("guestbook")) {
+      const guestbookPos = new Vector3(...GUESTBOOK.center);
+      const dist = charPos.distanceTo(guestbookPos);
+      if (dist < PLANET_NARRATION_RADIUS) {
+        triggeredPlanets.current.add("guestbook");
+        const narration = NARRATION.nearPlanet["guestbook"];
+        if (narration) {
+          dispatch({ type: "SET_NARRATION", text: narration });
+        }
+      }
+    }
   });
 
   return null;
@@ -489,11 +503,12 @@ export function ExperienceScene() {
       <HomePlanet characterRef={characterRef} />
       <Character ref={characterRef} controlsEnabled={controlsEnabled} />
       <PlanetSystem characterRef={characterRef} />
+      <GuestbookRegion characterRef={characterRef} />
       <BlackHole
         characterRef={characterRef}
         visible={isPlanetUnlocked("contact")}
       />
-      <GuideTrail />
+      <GuideTrail characterRef={characterRef} />
       <PlanetNarrationTrigger characterRef={characterRef} />
       <UnlockNarrationHandler />
     </Canvas>

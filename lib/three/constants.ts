@@ -123,6 +123,16 @@ export const PROJECT_BLACK_HOLE = {
   offsetFromPlanet: 8,
 };
 
+// Guestbook region (left detour off tutorial)
+export const GUESTBOOK = {
+  center: [-40, 0, -80] as [number, number, number],
+  spread: 30,
+  labelDistanceThreshold: 15,
+  beaconSize: 1.5,
+  beaconColor: "#ffd700",
+  beaconEmissive: "#ff8c00",
+};
+
 // Black hole (contact portal)
 export const BLACK_HOLE = {
   position: [0, 2, -490] as [number, number, number],

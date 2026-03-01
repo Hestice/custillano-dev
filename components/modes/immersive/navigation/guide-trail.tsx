@@ -5,9 +5,15 @@ import { useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import { CatmullRomCurve3, Vector3 } from "three";
 import { PLANETS, PLANET_VISIT_ORDER } from "../planets/planet-layout";
+import type { CharacterRef } from "../character";
 
-export function GuideTrail() {
+export function GuideTrail({
+  characterRef,
+}: {
+  characterRef: React.RefObject<CharacterRef | null>;
+}) {
   const dashOffsetRef = useRef(0);
+  const opacityRef = useRef(0);
 
   const points = useMemo(() => {
     const orderedPositions: Vector3[] = [];
@@ -27,6 +33,10 @@ export function GuideTrail() {
 
   useFrame((_, delta) => {
     dashOffsetRef.current -= delta * 2;
+
+    const isFlying = characterRef.current?.launchPhase !== "grounded";
+    const target = isFlying ? 0.5 : 0;
+    opacityRef.current += (target - opacityRef.current) * Math.min(delta * 2, 1);
   });
 
   if (points.length < 2) return null;
@@ -35,9 +45,9 @@ export function GuideTrail() {
     <Line
       points={points}
       color="#64b5f6"
-      lineWidth={1}
+      lineWidth={3}
       transparent
-      opacity={0.3}
+      opacity={opacityRef.current}
       dashed
       dashSize={2}
       dashScale={1}
