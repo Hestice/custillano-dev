@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/client";
+import { filterContent } from "@/lib/guestbook/content-filter";
 
 const RATE_LIMIT_WINDOW_MINUTES = 1;
 const RATE_LIMIT_MAX = 3;
+
+const TURNSTILE_VERIFY_URL =
+  "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 async function isRateLimited(
   supabase: ReturnType<typeof createServiceClient>,
@@ -46,13 +50,35 @@ function randomPlanetSize(): number {
   return +(0.2 + Math.random() * 0.3).toFixed(2); // 0.20 - 0.50
 }
 
+async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) {
+    console.error("TURNSTILE_SECRET_KEY not configured");
+    return false;
+  }
+
+  const res = await fetch(TURNSTILE_VERIFY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      secret,
+      response: token,
+      remoteip: ip,
+    }),
+  });
+
+  const data = await res.json();
+  return data.success === true;
+}
+
 export async function GET() {
   try {
     const supabase = createServiceClient();
 
     const { data, error } = await supabase
       .from("guestbook_entries")
-      .select("id, name, message, planet_color, planet_size, created_at")
+      .select("id, name, message, planet_color, planet_size, likes, created_at")
+      .not("approved_at", "is", null)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(5);
@@ -88,11 +114,31 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, message, _honey } = body;
+    const { name, message, _honey, turnstileToken } = body;
 
     // Honeypot: if filled, silently return fake success
     if (_honey) {
-      return NextResponse.json({ success: true, id: crypto.randomUUID() });
+      return NextResponse.json({
+        success: true,
+        id: crypto.randomUUID(),
+        pending: true,
+      });
+    }
+
+    // Verify Turnstile
+    if (!turnstileToken || typeof turnstileToken !== "string") {
+      return NextResponse.json(
+        { error: "Bot verification failed. Please try again." },
+        { status: 400 }
+      );
+    }
+
+    const turnstileValid = await verifyTurnstile(turnstileToken, ip);
+    if (!turnstileValid) {
+      return NextResponse.json(
+        { error: "Bot verification failed. Please try again." },
+        { status: 403 }
+      );
     }
 
     // Validate
@@ -121,6 +167,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Content filter
+    const filterResult = filterContent(name.trim(), message.trim());
+    if (filterResult.blocked) {
+      return NextResponse.json(
+        { error: filterResult.reason },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("guestbook_entries")
       .insert({
@@ -141,7 +196,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, id: data.id });
+    return NextResponse.json({ success: true, id: data.id, pending: true });
   } catch (error) {
     console.error("Guestbook POST error:", error);
     return NextResponse.json(

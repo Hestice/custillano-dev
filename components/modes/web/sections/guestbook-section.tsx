@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { Heart } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,8 @@ import { siteConfig } from "@/config/site";
 import { ScaleReveal } from "@/components/modes/web/animations/scale-reveal";
 import { FadeIn } from "@/components/modes/web/animations/fade-in";
 import { useGuestbook } from "@/lib/guestbook/use-guestbook";
+import { useLikes } from "@/lib/guestbook/use-likes";
+import { cn } from "@/lib/utils";
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -27,29 +31,70 @@ function formatDate(dateString: string) {
   });
 }
 
+function CharCounter({ current, max }: { current: number; max: number }) {
+  const remaining = max - current;
+  const pct = current / max;
+  return (
+    <span
+      className={cn(
+        "text-xs",
+        pct >= 0.95
+          ? "text-destructive"
+          : pct >= 0.8
+            ? "text-yellow-500"
+            : "text-muted-foreground"
+      )}
+    >
+      {remaining} remaining
+    </span>
+  );
+}
+
 export function GuestbookSection() {
   const { guestbook } = siteConfig;
   const { entries, loading, submitting, submitEntry } = useGuestbook();
+  const { isLiked, toggleLike } = useLikes();
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [honey, setHoney] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     try {
-      await submitEntry(name.trim(), message.trim(), honey);
+      await submitEntry(
+        name.trim(),
+        message.trim(),
+        honey,
+        turnstileToken ?? undefined
+      );
       setName("");
       setMessage("");
       setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 3000);
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit");
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
     }
   };
+
+  const handleLike = useCallback(
+    async (entryId: string) => {
+      const newCount = await toggleLike(entryId);
+      if (newCount !== null) {
+        setLikeCounts((prev) => ({ ...prev, [entryId]: newCount }));
+      }
+    },
+    [toggleLike]
+  );
 
   return (
     <section
@@ -96,28 +141,50 @@ export function GuestbookSection() {
                     className="absolute opacity-0 pointer-events-none h-0 w-0"
                     aria-hidden="true"
                   />
-                  <Input
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={50}
-                    required
-                  />
-                  <Textarea
-                    placeholder="Leave a note..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    maxLength={500}
-                    rows={3}
-                    required
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={50}
+                      required
+                    />
+                    <CharCounter current={name.length} max={50} />
+                  </div>
+                  <div className="space-y-1">
+                    <Textarea
+                      placeholder="Leave a note..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      maxLength={500}
+                      rows={3}
+                      required
+                    />
+                    <CharCounter current={message.length} max={500} />
+                  </div>
+                  {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                    <Turnstile
+                      ref={turnstileRef}
+                      siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                      onSuccess={setTurnstileToken}
+                      onError={() => setTurnstileToken(null)}
+                      onExpire={() => setTurnstileToken(null)}
+                      options={{ size: "invisible" }}
+                    />
+                  )}
                   <div className="flex items-center gap-3">
-                    <Button type="submit" disabled={submitting || !name.trim() || !message.trim()}>
+                    <Button
+                      type="submit"
+                      disabled={
+                        submitting || !name.trim() || !message.trim()
+                      }
+                    >
                       {submitting ? "Signing..." : "Sign"}
                     </Button>
                     {submitted && (
                       <span className="text-sm text-muted-foreground">
-                        Signed!
+                        Thanks! Your message is pending review and will appear
+                        once approved.
                       </span>
                     )}
                     {error && (
@@ -162,6 +229,24 @@ export function GuestbookSection() {
                         {entry.message}
                       </p>
                     </div>
+                    <button
+                      onClick={() => handleLike(entry.id)}
+                      disabled={isLiked(entry.id)}
+                      className={cn(
+                        "flex items-center gap-1 shrink-0 rounded-full px-2 py-1 text-xs transition-colors",
+                        isLiked(entry.id)
+                          ? "text-pink-500"
+                          : "text-muted-foreground hover:text-pink-500"
+                      )}
+                    >
+                      <Heart
+                        className="size-3.5"
+                        fill={isLiked(entry.id) ? "currentColor" : "none"}
+                      />
+                      <span>
+                        {likeCounts[entry.id] ?? entry.likes}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>

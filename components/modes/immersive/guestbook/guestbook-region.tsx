@@ -3,11 +3,12 @@
 import { useRef, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
-import type { Mesh } from "three";
-import { GUESTBOOK } from "@/lib/three/constants";
+import { Vector3, type Mesh } from "three";
+import { GUESTBOOK, PLANET_PROXIMITY_THRESHOLD } from "@/lib/three/constants";
 import { useGuestbook } from "@/lib/guestbook/use-guestbook";
 import type { CharacterRef } from "../character";
 import type { GuestbookEntry } from "@/lib/guestbook/types";
+import { useStory } from "../state/story-context";
 
 /** Golden angle spiral with minimum gap to prevent label overlap */
 function spiralPosition(
@@ -36,31 +37,54 @@ function GuestbookLabel({
 }: {
   characterRef: React.RefObject<CharacterRef | null>;
 }) {
-  const [showLabel, setShowLabel] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const billboardPos = useRef(
+    new Vector3(GUESTBOOK.center[0], GUESTBOOK.center[1] + 4, GUESTBOOK.center[2])
+  );
 
   useFrame(() => {
-    if (characterRef.current) {
-      setShowLabel(characterRef.current.launchPhase !== "grounded");
-    }
+    if (!containerRef.current || !characterRef.current) return;
+    const dist = characterRef.current.position.distanceTo(billboardPos.current);
+    containerRef.current.style.display =
+      dist < PLANET_PROXIMITY_THRESHOLD ? "" : "none";
   });
 
-  if (!showLabel) return null;
-
   return (
-    <Html
+    <group
       position={[
         GUESTBOOK.center[0],
         GUESTBOOK.center[1] + 4,
         GUESTBOOK.center[2],
       ]}
-      center
-      distanceFactor={80}
-      style={{ pointerEvents: "none" }}
     >
-      <div className="text-white text-sm font-semibold whitespace-nowrap bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-        Visitor Cluster
-      </div>
-    </Html>
+      <Html
+        transform
+        occlude={false}
+        distanceFactor={15}
+        style={{ pointerEvents: "none" }}
+      >
+        <div
+          ref={containerRef}
+          className="rounded-lg border border-white/20 backdrop-blur-sm"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,20,40,0.9) 100%)",
+            boxShadow:
+              "0 0 20px rgba(100,150,255,0.15), inset 0 0 20px rgba(100,150,255,0.05)",
+          }}
+        >
+          <div className="w-[200px] p-4 text-white">
+            <p className="text-[10px] uppercase tracking-widest text-amber-400/60 mb-1 font-mono">
+              Open Frequency
+            </p>
+            <h3 className="text-sm font-bold mb-2">Visitor Cluster</h3>
+            <p className="text-[11px] opacity-80 leading-relaxed">
+              Travelers who&apos;ve passed through leave a signal here — each one a tiny world in orbit.
+            </p>
+          </div>
+        </div>
+      </Html>
+    </group>
   );
 }
 
@@ -114,23 +138,45 @@ function MiniPlanet({
         />
       </mesh>
       {(showLabel || hovered) && (
-        <Html
+        <group
           position={[
             position[0],
             position[1] + entry.planet_size * 4 + 0.8,
             position[2],
           ]}
-          center
-          distanceFactor={40}
-          style={{ pointerEvents: "none" }}
         >
-          <div className="text-white text-xs bg-black/60 px-2 py-1 rounded backdrop-blur-sm max-w-[200px]">
-            <span className="font-medium">{entry.name}</span>
-            <p className="text-white/70 text-[10px] mt-0.5 whitespace-normal">
-              {entry.message}
-            </p>
-          </div>
-        </Html>
+          <Html
+            transform
+            occlude={false}
+            distanceFactor={15}
+            style={{ pointerEvents: "none" }}
+          >
+            <div
+              className="rounded-lg border border-white/20 backdrop-blur-sm"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,20,40,0.9) 100%)",
+                boxShadow:
+                  "0 0 20px rgba(100,150,255,0.15), inset 0 0 20px rgba(100,150,255,0.05)",
+              }}
+            >
+              <div className="w-[200px] p-3 text-white">
+                <p className="text-[10px] uppercase tracking-widest text-amber-400/60 mb-1 font-mono">
+                  Visitor Signal
+                </p>
+                <h3 className="text-sm font-bold mb-1">{entry.name}</h3>
+                <p className="text-[11px] opacity-80 leading-relaxed whitespace-normal">
+                  {entry.message}
+                </p>
+                {entry.likes > 0 && (
+                  <p className="text-[10px] mt-1" style={{ color: "#f472b6" }}>
+                    {entry.likes} {entry.likes === 1 ? "like" : "likes"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </Html>
+        </group>
       )}
     </group>
   );
@@ -142,6 +188,9 @@ export function GuestbookRegion({
   characterRef: React.RefObject<CharacterRef | null>;
 }) {
   const { entries } = useGuestbook();
+  const { state } = useStory();
+
+  const showBillboards = state.phase === "exploring" || state.phase === "complete";
 
   // Precompute positions with golden angle spiral
   const positions = useMemo(() => {
@@ -152,7 +201,7 @@ export function GuestbookRegion({
 
   return (
     <group>
-      <GuestbookLabel characterRef={characterRef} />
+      {showBillboards && <GuestbookLabel characterRef={characterRef} />}
       {entries.map((entry, i) => (
         <MiniPlanet
           key={entry.id}
