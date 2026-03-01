@@ -123,12 +123,12 @@ export const PROJECT_BLACK_HOLE = {
   offsetFromPlanet: 8,
 };
 
-// Guestbook region
+// Guestbook region (left detour off tutorial)
 export const GUESTBOOK = {
-  center: [80, 0, -440] as [number, number, number],
+  center: [-40, 0, -80] as [number, number, number],
   spread: 30,
   labelDistanceThreshold: 15,
-  beaconSize: 2,
+  beaconSize: 1.5,
   beaconColor: "#ffd700",
   beaconEmissive: "#ff8c00",
 };

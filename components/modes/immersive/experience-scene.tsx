@@ -508,7 +508,7 @@ export function ExperienceScene() {
         characterRef={characterRef}
         visible={isPlanetUnlocked("contact")}
       />
-      <GuideTrail />
+      <GuideTrail characterRef={characterRef} />
       <PlanetNarrationTrigger characterRef={characterRef} />
       <UnlockNarrationHandler />
     </Canvas>

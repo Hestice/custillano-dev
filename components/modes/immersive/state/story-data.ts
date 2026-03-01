@@ -14,7 +14,7 @@ export const NARRATION = {
     contact:
       "The Contact Beacon. Ready to connect? Collect the signals to open the channel.",
     guestbook:
-      "The Guestbook Cluster. Visitors leave their mark here — each one a tiny planet in orbit.",
+      "The Visitor Cluster. Travelers who've passed through leave a signal here — each one a tiny world in orbit.",
     blackHole:
       "A rift in space. Something pulls you toward it.",
   } as Record<string, string>,
