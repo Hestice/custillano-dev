@@ -46,7 +46,7 @@ export async function GET() {
       .select("id, name, message, planet_color, planet_size, created_at")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(5);
 
     if (error) {
       console.error("Guestbook fetch error:", error);

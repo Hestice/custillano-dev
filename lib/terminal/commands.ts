@@ -417,8 +417,9 @@ export const commands: Record<string, Command> = {
       }
 
       // Default: fetch and display entries (handled by effect)
-      return "Fetching guestbook entries...";
+      return "Reading recent guestbook logs...";
     },
+    delay: COMMAND_DELAY_MS,
     effect: async (args: string[], context: TerminalContext) => {
       const subcommand = args[0]?.toLowerCase();
       if (subcommand === "sign") return; // handled by interactive mode
@@ -449,7 +450,6 @@ export const commands: Record<string, Command> = {
         }
 
         const formatted = entries
-          .slice(0, 20)
           .map((e: { name: string; message: string; created_at: string }) => {
             const date = new Date(e.created_at).toLocaleDateString("en-US", {
               month: "short",
