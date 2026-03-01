@@ -26,7 +26,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (action !== "approve" && action !== "delete") {
+    const validActions = ["approve", "delete", "hide", "unhide"];
+    if (!validActions.includes(action)) {
       return NextResponse.json(
         { error: "Invalid action" },
         { status: 400 }
@@ -35,10 +36,14 @@ export async function POST(request: Request) {
 
     const supabase = createServiceClient();
 
-    const updateData =
-      action === "approve"
-        ? { approved_at: new Date().toISOString() }
-        : { deleted_at: new Date().toISOString() };
+    const updateMap: Record<string, Record<string, string | null>> = {
+      approve: { approved_at: new Date().toISOString() },
+      delete: { deleted_at: new Date().toISOString() },
+      hide: { hidden_at: new Date().toISOString() },
+      unhide: { hidden_at: null },
+    };
+
+    const updateData = updateMap[action];
 
     const { error } = await supabase
       .from("guestbook_entries")

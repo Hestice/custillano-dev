@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GuestbookEntryAdmin } from "@/lib/guestbook/types";
 
-type StatusFilter = "all" | "pending" | "approved" | "deleted";
+type StatusFilter = "all" | "pending" | "approved" | "deleted" | "hidden";
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleString("en-US", {
@@ -21,6 +21,13 @@ function StatusBadge({ entry }: { entry: GuestbookEntryAdmin }) {
     return (
       <span className="inline-flex items-center rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
         Deleted
+      </span>
+    );
+  }
+  if (entry.hidden_at) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400">
+        Hidden
       </span>
     );
   }
@@ -42,6 +49,7 @@ const STATUS_TABS: { label: string; value: StatusFilter }[] = [
   { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "Approved", value: "approved" },
+  { label: "Hidden", value: "hidden" },
   { label: "Deleted", value: "deleted" },
 ];
 
@@ -149,7 +157,19 @@ export function AdminGuestbookClient({
     }
   };
 
-  const handleAction = async (id: string, action: "approve" | "delete") => {
+  type EntryAction = "approve" | "delete" | "hide" | "unhide";
+
+  const applyOptimisticUpdate = (entry: GuestbookEntryAdmin, action: EntryAction): GuestbookEntryAdmin => {
+    const now = new Date().toISOString();
+    switch (action) {
+      case "approve": return { ...entry, approved_at: now };
+      case "delete": return { ...entry, deleted_at: now };
+      case "hide": return { ...entry, hidden_at: now };
+      case "unhide": return { ...entry, hidden_at: null };
+    }
+  };
+
+  const handleAction = async (id: string, action: EntryAction) => {
     setActionLoading(id);
     try {
       const res = await fetch(`/api/guestbook/${id}`, {
@@ -163,13 +183,7 @@ export function AdminGuestbookClient({
         return;
       }
       setEntries((prev) =>
-        prev.map((e) => {
-          if (e.id !== id) return e;
-          if (action === "approve") {
-            return { ...e, approved_at: new Date().toISOString() };
-          }
-          return { ...e, deleted_at: new Date().toISOString() };
-        })
+        prev.map((e) => e.id === id ? applyOptimisticUpdate(e, action) : e)
       );
     } catch {
       alert(`Failed to ${action} entry`);
@@ -178,7 +192,7 @@ export function AdminGuestbookClient({
     }
   };
 
-  const handleBatchAction = async (action: "approve" | "delete") => {
+  const handleBatchAction = async (action: EntryAction) => {
     if (selectedIds.size === 0) return;
     setBatchLoading(true);
     try {
@@ -193,13 +207,7 @@ export function AdminGuestbookClient({
         return;
       }
       setEntries((prev) =>
-        prev.map((e) => {
-          if (!selectedIds.has(e.id)) return e;
-          if (action === "approve") {
-            return { ...e, approved_at: new Date().toISOString() };
-          }
-          return { ...e, deleted_at: new Date().toISOString() };
-        })
+        prev.map((e) => selectedIds.has(e.id) ? applyOptimisticUpdate(e, action) : e)
       );
       setSelectedIds(new Set());
     } catch {
@@ -229,7 +237,7 @@ export function AdminGuestbookClient({
       {/* Sticky toolbar: tabs + bulk actions + select all */}
       <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-1 pb-3 bg-background border-b border-border space-y-2">
         {/* Status filter tabs */}
-        <div className="grid grid-cols-4 gap-1 rounded-lg border border-border p-1">
+        <div className="grid grid-cols-5 gap-1 rounded-lg border border-border p-1">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -257,6 +265,20 @@ export function AdminGuestbookClient({
               className="rounded-md bg-primary px-2 sm:px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               Approve
+            </button>
+            <button
+              onClick={() => handleBatchAction("hide")}
+              disabled={batchLoading}
+              className="rounded-md border border-violet-500/30 px-2 sm:px-3 py-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 disabled:opacity-50"
+            >
+              Hide
+            </button>
+            <button
+              onClick={() => handleBatchAction("unhide")}
+              disabled={batchLoading}
+              className="rounded-md border border-violet-500/30 px-2 sm:px-3 py-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 disabled:opacity-50"
+            >
+              Unhide
             </button>
             <button
               onClick={() => handleBatchAction("delete")}
@@ -294,9 +316,11 @@ export function AdminGuestbookClient({
             className={`rounded-lg border p-3 sm:p-4 space-y-2 ${
               entry.deleted_at
                 ? "border-destructive/30 bg-destructive/5 opacity-60"
-                : !entry.approved_at
-                  ? "border-yellow-500/30 bg-yellow-500/5"
-                  : "border-border"
+                : entry.hidden_at
+                  ? "border-violet-500/30 bg-violet-500/5 opacity-70"
+                  : !entry.approved_at
+                    ? "border-yellow-500/30 bg-yellow-500/5"
+                    : "border-border"
             }`}
           >
             <div className="flex items-start gap-2 sm:gap-3">
@@ -337,6 +361,24 @@ export function AdminGuestbookClient({
                         className="rounded px-2 py-1 text-xs text-primary hover:bg-primary/10 disabled:opacity-50"
                       >
                         {actionLoading === entry.id ? "..." : "Approve"}
+                      </button>
+                    )}
+                    {!entry.deleted_at && entry.approved_at && !entry.hidden_at && (
+                      <button
+                        onClick={() => handleAction(entry.id, "hide")}
+                        disabled={actionLoading === entry.id}
+                        className="rounded px-2 py-1 text-xs text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 disabled:opacity-50"
+                      >
+                        {actionLoading === entry.id ? "..." : "Hide"}
+                      </button>
+                    )}
+                    {!entry.deleted_at && entry.hidden_at && (
+                      <button
+                        onClick={() => handleAction(entry.id, "unhide")}
+                        disabled={actionLoading === entry.id}
+                        className="rounded px-2 py-1 text-xs text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 disabled:opacity-50"
+                      >
+                        {actionLoading === entry.id ? "..." : "Unhide"}
                       </button>
                     )}
                     {!entry.deleted_at && (

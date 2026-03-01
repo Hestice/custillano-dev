@@ -4,7 +4,7 @@ import { validateAdmin } from "@/lib/guestbook/validate-admin";
 
 const PAGE_SIZE = 20;
 
-type StatusFilter = "all" | "pending" | "approved" | "deleted";
+type StatusFilter = "all" | "pending" | "approved" | "deleted" | "hidden";
 
 export async function GET(request: Request) {
   try {
@@ -35,8 +35,11 @@ export async function GET(request: Request) {
       entriesQuery = entriesQuery.is("approved_at", null).is("deleted_at", null);
       countQuery = countQuery.is("approved_at", null).is("deleted_at", null);
     } else if (status === "approved") {
-      entriesQuery = entriesQuery.not("approved_at", "is", null).is("deleted_at", null);
-      countQuery = countQuery.not("approved_at", "is", null).is("deleted_at", null);
+      entriesQuery = entriesQuery.not("approved_at", "is", null).is("deleted_at", null).is("hidden_at", null);
+      countQuery = countQuery.not("approved_at", "is", null).is("deleted_at", null).is("hidden_at", null);
+    } else if (status === "hidden") {
+      entriesQuery = entriesQuery.not("hidden_at", "is", null).is("deleted_at", null);
+      countQuery = countQuery.not("hidden_at", "is", null).is("deleted_at", null);
     } else if (status === "deleted") {
       entriesQuery = entriesQuery.not("deleted_at", "is", null);
       countQuery = countQuery.not("deleted_at", "is", null);
