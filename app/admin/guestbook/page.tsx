@@ -18,22 +18,39 @@ async function getAuthenticatedAdmin(): Promise<boolean> {
   return data.user.email?.toLowerCase() === adminEmail.toLowerCase();
 }
 
+type StatusFilter = "all" | "pending" | "approved" | "deleted";
+
 const PAGE_SIZE = 20;
 
-async function getEntries(page: number) {
+async function getEntries(page: number, status: StatusFilter) {
   const supabase = createServiceClient();
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
+  let entriesQuery = supabase
+    .from("guestbook_entries")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  let countQuery = supabase
+    .from("guestbook_entries")
+    .select("*", { count: "exact", head: true });
+
+  if (status === "pending") {
+    entriesQuery = entriesQuery.is("approved_at", null).is("deleted_at", null);
+    countQuery = countQuery.is("approved_at", null).is("deleted_at", null);
+  } else if (status === "approved") {
+    entriesQuery = entriesQuery.not("approved_at", "is", null).is("deleted_at", null);
+    countQuery = countQuery.not("approved_at", "is", null).is("deleted_at", null);
+  } else if (status === "deleted") {
+    entriesQuery = entriesQuery.not("deleted_at", "is", null);
+    countQuery = countQuery.not("deleted_at", "is", null);
+  }
+
   const [entriesResult, countResult] = await Promise.all([
-    supabase
-      .from("guestbook_entries")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .range(from, to),
-    supabase
-      .from("guestbook_entries")
-      .select("*", { count: "exact", head: true }),
+    entriesQuery,
+    countQuery,
   ]);
 
   if (entriesResult.error) {
@@ -50,7 +67,7 @@ async function getEntries(page: number) {
 export default async function AdminGuestbookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; page?: string }>;
+  searchParams: Promise<{ error?: string; page?: string; status?: string }>;
 }) {
   const params = await searchParams;
   const isAdmin = await getAuthenticatedAdmin();
@@ -81,7 +98,8 @@ export default async function AdminGuestbookPage({
   }
 
   const page = Math.max(1, parseInt(params.page || "1", 10) || 1);
-  const { entries, total } = await getEntries(page);
+  const status = (params.status || "all") as StatusFilter;
+  const { entries, total } = await getEntries(page, status);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -90,13 +108,14 @@ export default async function AdminGuestbookPage({
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Guestbook Moderation</h1>
           <span className="text-sm text-muted-foreground">
-            {total} total entries
+            {total} {status === "all" ? "total" : status} entries
           </span>
         </div>
         <AdminGuestbookClient
           initialEntries={entries}
           page={page}
           totalPages={totalPages}
+          status={status}
         />
       </div>
     </div>

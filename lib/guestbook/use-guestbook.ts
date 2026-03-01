@@ -28,45 +28,42 @@ export function useGuestbook() {
   }, [fetchEntries]);
 
   const submitEntry = useCallback(
-    async (name: string, message: string, honey?: string) => {
+    async (
+      name: string,
+      message: string,
+      honey?: string,
+      turnstileToken?: string
+    ) => {
       setSubmitting(true);
       setError(null);
-
-      // Optimistic prepend
-      const optimistic: GuestbookEntry = {
-        id: crypto.randomUUID(),
-        name,
-        message,
-        planet_color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-        planet_size: 0.2 + Math.random() * 0.3,
-        created_at: new Date().toISOString(),
-      };
-      setEntries((prev) => [optimistic, ...prev]);
 
       try {
         const res = await fetch("/api/guestbook", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, message, _honey: honey }),
+          body: JSON.stringify({
+            name,
+            message,
+            _honey: honey,
+            turnstileToken,
+          }),
         });
 
+        const data = await res.json();
+
         if (!res.ok) {
-          const data = await res.json();
           throw new Error(data.error || "Failed to submit");
         }
 
-        // Refetch to get server-generated values
-        await fetchEntries();
+        return { pending: data.pending ?? false };
       } catch (err) {
-        // Rollback optimistic update
-        setEntries((prev) => prev.filter((e) => e.id !== optimistic.id));
         setError(err instanceof Error ? err.message : "Failed to submit");
         throw err;
       } finally {
         setSubmitting(false);
       }
     },
-    [fetchEntries]
+    []
   );
 
   return { entries, loading, error, submitting, submitEntry, refetch: fetchEntries };
