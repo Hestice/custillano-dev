@@ -18,32 +18,32 @@ export async function PATCH(
 
     const supabase = createServiceClient();
 
-    if (action === "approve") {
-      const { error } = await supabase
-        .from("guestbook_entries")
-        .update({ approved_at: new Date().toISOString() })
-        .eq("id", id);
+    const updateMap: Record<string, Record<string, string | null>> = {
+      approve: { approved_at: new Date().toISOString() },
+      delete: { deleted_at: new Date().toISOString() },
+      hide: { hidden_at: new Date().toISOString() },
+      unhide: { hidden_at: null },
+    };
 
-      if (error) {
-        console.error("Guestbook approve error:", error);
-        return NextResponse.json(
-          { error: "Failed to approve entry" },
-          { status: 500 }
-        );
-      }
-    } else {
-      const { error } = await supabase
-        .from("guestbook_entries")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
+    const updateData = updateMap[action];
+    if (!updateData) {
+      return NextResponse.json(
+        { error: "Invalid action" },
+        { status: 400 }
+      );
+    }
 
-      if (error) {
-        console.error("Guestbook delete error:", error);
-        return NextResponse.json(
-          { error: "Failed to delete entry" },
-          { status: 500 }
-        );
-      }
+    const { error } = await supabase
+      .from("guestbook_entries")
+      .update(updateData)
+      .eq("id", id);
+
+    if (error) {
+      console.error(`Guestbook ${action} error:`, error);
+      return NextResponse.json(
+        { error: `Failed to ${action} entry` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });

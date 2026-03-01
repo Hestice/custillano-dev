@@ -18,7 +18,7 @@ async function getAuthenticatedAdmin(): Promise<boolean> {
   return data.user.email?.toLowerCase() === adminEmail.toLowerCase();
 }
 
-type StatusFilter = "all" | "pending" | "approved" | "deleted";
+type StatusFilter = "all" | "pending" | "approved" | "deleted" | "hidden";
 
 const PAGE_SIZE = 20;
 
@@ -41,8 +41,11 @@ async function getEntries(page: number, status: StatusFilter) {
     entriesQuery = entriesQuery.is("approved_at", null).is("deleted_at", null);
     countQuery = countQuery.is("approved_at", null).is("deleted_at", null);
   } else if (status === "approved") {
-    entriesQuery = entriesQuery.not("approved_at", "is", null).is("deleted_at", null);
-    countQuery = countQuery.not("approved_at", "is", null).is("deleted_at", null);
+    entriesQuery = entriesQuery.not("approved_at", "is", null).is("deleted_at", null).is("hidden_at", null);
+    countQuery = countQuery.not("approved_at", "is", null).is("deleted_at", null).is("hidden_at", null);
+  } else if (status === "hidden") {
+    entriesQuery = entriesQuery.not("hidden_at", "is", null).is("deleted_at", null);
+    countQuery = countQuery.not("hidden_at", "is", null).is("deleted_at", null);
   } else if (status === "deleted") {
     entriesQuery = entriesQuery.not("deleted_at", "is", null);
     countQuery = countQuery.not("deleted_at", "is", null);
@@ -112,6 +115,7 @@ export default async function AdminGuestbookPage({
           </span>
         </div>
         <AdminGuestbookClient
+          key={`${status}-${page}`}
           initialEntries={entries}
           page={page}
           totalPages={totalPages}
